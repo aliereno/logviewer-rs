@@ -1,14 +1,14 @@
 use core::time::Duration;
 
+use actix_files as fs;
 use actix_web::middleware::Logger;
 use actix_web::rt::spawn;
-use actix_web::{App, HttpServer};
 use actix_web::rt::time;
-use actix_files as fs;
+use actix_web::{App, HttpServer};
 
-mod fetcher;
 mod api;
-
+mod fetcher;
+mod model;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
