@@ -6,15 +6,13 @@
   <link rel="stylesheet" type="text/css" href="styles.css">
 </head>
 <body>
-  <div class="container-fluid" style="padding: 50px;">
+  <div id="app" class="container-fluid" style="padding: 50px;">
     <div class="row">
       <div class="col-lg-3 sidebar">
         <!-- Sidebar content -->
         <h4 class="sidebar-heading">Log Sources</h4>
         <div class="list-group">
-          <a href="#" class="list-group-item list-group-item-action active">Source 1</a>
-          <a href="#" class="list-group-item list-group-item-action">Source 2</a>
-          <a href="#" class="list-group-item list-group-item-action">Source 3</a>
+          <a v-for="source in sources" :key="source.id" href="#" class="list-group-item list-group-item-action" @click="fetchLogsBySource(source.id)">{{ source.name }}</a>
         </div>
       </div>
       <div class="col-lg-9 main-content">
@@ -23,38 +21,38 @@
             <div class="row">
                 <div class="col-md-2">
                 <div class="metric-box">
+                    <h6>Request Time</h6>
+                    <p>Min: {{ stats?.min_request_time }} ms <br> Max: {{ stats?.max_request_time }} ms</p>
+                  </div>
+                </div>
+                <div class="col-md-2">
+                <div class="metric-box">
                     <h6>Average Request Time</h6>
-                    <p>120 ms</p>
-                </div>
+                    <p>{{ stats?.median_request_time }} ms</p>
+                  </div>
                 </div>
                 <div class="col-md-2">
-                <div class="metric-box">
+                  <div class="metric-box">
                     <h6>Total Requests</h6>
-                    <p>5000</p>
-                </div>
+                    <p>{{ stats?.total_requests }}</p>
+                  </div>
                 </div>
                 <div class="col-md-2">
-                <div class="metric-box">
+                  <div class="metric-box">
                     <h6>Successful Requests</h6>
-                    <p>4500</p>
-                </div>
-                </div>
-                <div class="col-md-2">
-                <div class="metric-box">
-                    <h6>Failed Requests</h6>
-                    <p>500</p>
-                </div>
+                    <p>{{ stats?.total_success_requests }}</p>
+                  </div>
                 </div>
                 <div class="col-md-2">
-                <div class="metric-box">
-                    <h6>Pending Requests</h6>
-                    <p>0</p>
-                </div>
+                  <div class="metric-box">
+                    <h6>Server Errors</h6>
+                    <p>{{ stats?.total_server_errors }}</p>
+                  </div>
                 </div>
                 <div class="col-md-2">
-                <div class="metric-box">
-                    <h6>Pending Requests</h6>
-                    <p>0</p>
+                  <div class="metric-box">
+                    <h6>Client Errors</h6>
+                    <p>{{ stats?.total_client_errors }}</p>
                 </div>
                 </div>
             </div>
@@ -87,9 +85,10 @@
           </div>
         </div>
         
+
         <!-- Table listing -->
         <div class="table-responsive">
-          <table id="data-table" class="table">
+          <table class="table table-bordered">
             <thead>
               <tr>
                 <th>Url</th>
@@ -99,30 +98,32 @@
                 <th>Response Status Code</th>
               </tr>
             </thead>
-            <tbody id="table-body">
-              <!-- Table rows will be dynamically added here -->
+            <tbody>
+              <tr v-for="log in logs" :key="log.id">
+                <td>{{ log.request_url }}</td>
+                <td>{{ log.timestamp }}</td>
+                <td>{{ log.request_method }}</td>
+                <td>{{ log.duration }}</td>
+                <td>{{ log.response_status_code }}</td>
+                <!-- Render more columns as needed -->
+              </tr>
             </tbody>
           </table>
         </div>
 
         <!-- Pagination -->
         <nav class="mt-3">
-          <ul class="pagination justify-content-center">
-            <li class="page-item disabled">
-              <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Previous</a>
-            </li>
-            <li class="page-item active"><a class="page-link" href="#">1</a></li>
-            <li class="page-item"><a class="page-link" href="#">2</a></li>
-            <li class="page-item"><a class="page-link" href="#">3</a></li>
-            <li class="page-item">
-              <a class="page-link" href="#">Next</a>
+          <ul class="pagination">
+            <li class="page-item" :class="{ 'active': currentPage === page }" v-for="page in totalPages" :key="page">
+              <a class="page-link" href="#" @click="setCurrentPage(page)">{{ page }}</a>
             </li>
           </ul>
         </nav>
+        
       </div>
     </div>
   </div>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.6.14/vue.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
