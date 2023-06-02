@@ -4,6 +4,7 @@ use actix_web::middleware::Logger;
 use actix_web::rt::spawn;
 use actix_web::{App, HttpServer};
 use actix_web::rt::time;
+use actix_files as fs;
 
 mod fetcher;
 mod api;
@@ -25,6 +26,7 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .configure(api::config_app)
+            .service(fs::Files::new("/", "./static").index_file("index.html"))
             .wrap(Logger::default())
     })
     .workers(1)

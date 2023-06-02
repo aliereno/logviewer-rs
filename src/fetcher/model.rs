@@ -3,7 +3,7 @@ use serde::{Serialize, Deserialize};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct LogJson {
-    url: Option<String>,
+    #[serde(alias = "@timestamp")]
     timestamp: Option<String>,
     app_version: Option<String>,
     request_url: Option<String>,
@@ -13,7 +13,7 @@ pub struct LogJson {
     request_headers: Option<String>,
     request_by: Option<String>,
     request_body: Option<String>,
-    duration: Option<f32>,
+    duration: Option<f64>,
     pub response_status_code: Option<i32>,
     response_body: Option<String>,
     exception: Option<String>,
