@@ -1,4 +1,38 @@
+use std::sync::{Mutex, Arc};
+
 use serde::{Deserialize, Serialize};
+
+
+pub type ArcMutexBackgroundData = Arc<Mutex<BackgroundData>>;
+
+
+pub struct BackgroundData {
+    pub sources: Vec<Source>
+}
+
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Source {
+    id: i32,
+    name: String,
+}
+
+impl Source {
+    pub fn new(id: i32, name: String) -> Source {
+        Source { id, name }
+    }
+
+    pub fn from_env(env_string: String) -> Vec<Source> {
+        let mut result = vec![];
+
+        let index: i32 = 1; 
+        for splitted in env_string.split(",") {
+            result.push(Source::new(index, splitted.into()));
+        }
+
+        result
+    }
+}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct LogJson {
@@ -76,17 +110,5 @@ impl LogEntry {
             endpoint,
             log: Some(log),
         })
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct Source {
-    id: i32,
-    name: String,
-}
-
-impl Source {
-    pub fn new(id: i32, name: String) -> Source {
-        Source { id, name }
     }
 }

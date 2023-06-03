@@ -3,7 +3,7 @@ use actix_web::{get, web, Error, HttpResponse, Result};
 use crate::{
     api::serializers::PageOut,
     fetcher::fetch_statistics,
-    model::{LogEntry, LogJson, Source, Stats},
+    model::{LogJson, ArcMutexBackgroundData},
 };
 
 pub fn config_log(cfg: &mut web::ServiceConfig) {
@@ -13,13 +13,11 @@ pub fn config_log(cfg: &mut web::ServiceConfig) {
 }
 
 #[get("/source")]
-pub async fn source_list() -> Result<HttpResponse, Error> {
-    let source_list = vec![
-        Source::new(1, "Source #1".to_string()),
-        Source::new(2, "Source #2".to_string()),
-    ];
+pub async fn source_list(background_data: web::Data<ArcMutexBackgroundData>) -> Result<HttpResponse, Error> {
+    let data = background_data.lock().unwrap();
+    let result = data.sources.clone();
 
-    Ok(HttpResponse::Ok().json(source_list))
+    Ok(HttpResponse::Ok().json(result))
 }
 
 #[get("/source/{source_id}/logs")]

@@ -1,6 +1,8 @@
-use std::io::BufRead;
+use std::{io::BufRead};
+use core::time::Duration;
+use actix_web::rt::time;
 
-use crate::model::{LogEntry, Stats};
+use crate::model::{LogEntry, Stats, ArcMutexBackgroundData};
 
 pub fn parse_log_file(file_path: &str) -> Vec<LogEntry> {
     let file = std::fs::File::open(file_path).expect("Unable to open file");
@@ -43,4 +45,18 @@ pub fn fetch_statistics() -> Stats {
         stats.total_client_errors + stats.total_server_errors + stats.total_success_requests;
 
     return stats;
+}
+
+
+pub async fn run_background_task(shared_data: ArcMutexBackgroundData) {
+    let mut interval = time::interval(Duration::from_secs(10));
+
+    loop {
+
+        let mut data = shared_data.lock().unwrap();
+        println!("hello");
+
+        interval.tick().await;
+
+    }
 }
