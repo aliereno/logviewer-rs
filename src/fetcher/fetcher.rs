@@ -2,7 +2,7 @@ use std::{io::BufRead};
 use core::time::Duration;
 use actix_web::rt::time;
 
-use crate::model::{LogEntry, Stats, ArcMutexBackgroundData};
+use crate::model::{LogEntry, Stats, ArcMutexBackgroundData, LogJson};
 
 pub fn parse_log_file(file_path: &str) -> Vec<LogEntry> {
     let file = std::fs::File::open(file_path).expect("Unable to open file");
@@ -14,9 +14,9 @@ pub fn parse_log_file(file_path: &str) -> Vec<LogEntry> {
         .collect()
 }
 
-pub fn fetch_statistics() -> Stats {
-    let entries = parse_log_file("logs/example.log");
-
+pub fn fetch_data_from_file(file_path: String) -> (Option<Stats>, Option<Vec<LogJson>>) {
+    let entries = parse_log_file(&file_path);
+    println!("readed file {} lines {}", file_path, entries.len());
     let mut stats = Stats {
         total_server_errors: 0,
         total_client_errors: 0,
@@ -26,6 +26,8 @@ pub fn fetch_statistics() -> Stats {
         max_request_time: 0.0,
         min_request_time: 0.0,
     };
+
+    let mut logs: Vec<LogJson> = vec![];
 
     for entry in entries {
         match entry.log {
@@ -37,6 +39,7 @@ pub fn fetch_statistics() -> Stats {
                 } else if log.response_status_code.unwrap_or_default() >= 200 {
                     stats.total_success_requests += 1;
                 }
+                logs.push(log);
             }
             _ => {}
         }
@@ -44,19 +47,25 @@ pub fn fetch_statistics() -> Stats {
     stats.total_requests =
         stats.total_client_errors + stats.total_server_errors + stats.total_success_requests;
 
-    return stats;
+    return (Some(stats), Some(logs));
 }
 
-
 pub async fn run_background_task(shared_data: ArcMutexBackgroundData) {
-    let mut interval = time::interval(Duration::from_secs(10));
+    let mut interval = time::interval(Duration::from_secs(180));
 
     loop {
+        interval.tick().await;
+        println!("started");
 
         let mut data = shared_data.lock().unwrap();
-        println!("hello");
 
-        interval.tick().await;
+        for source in &mut data.sources {
+            let (stats, logs) = fetch_data_from_file(source.name.clone());
+            source.set_stats(stats);
+            source.set_logs(logs);
+        }
+
+        println!("finished");
 
     }
 }
