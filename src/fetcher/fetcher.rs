@@ -1,21 +1,23 @@
-use std::{io::BufRead};
+use std::io::BufRead;
 use core::time::Duration;
 use actix_web::rt::time;
 
-use crate::model::{LogEntry, Stats, ArcMutexBackgroundData, LogJson};
+use crate::model::{LogEntry, Stats, ArcMutexBackgroundData, LogJson, Source};
 
-pub fn parse_log_file(file_path: &str) -> Vec<LogEntry> {
+pub fn parse_log_file(source_id: i32, file_path: &str) -> Vec<LogEntry> {
     let file = std::fs::File::open(file_path).expect("Unable to open file");
     let reader = std::io::BufReader::new(file);
     reader
         .lines()
         .filter_map(|line| line.ok())
-        .filter_map(|line| LogEntry::from_line(&line))
+        .filter_map(|line| LogEntry::from_line(source_id, &line))
         .collect()
 }
 
-pub fn fetch_data_from_file(file_path: String) -> (Option<Stats>, Option<Vec<LogJson>>) {
-    let entries = parse_log_file(&file_path);
+pub fn fetch_data_from_file(source: Source) -> (Stats, Vec<LogJson>) {
+    let file_path = &source.name;
+
+    let entries = parse_log_file(source.id, file_path);
     println!("readed file {} lines {}", file_path, entries.len());
     let mut stats = Stats {
         total_server_errors: 0,
@@ -47,7 +49,7 @@ pub fn fetch_data_from_file(file_path: String) -> (Option<Stats>, Option<Vec<Log
     stats.total_requests =
         stats.total_client_errors + stats.total_server_errors + stats.total_success_requests;
 
-    return (Some(stats), Some(logs));
+    return (stats, logs);
 }
 
 pub async fn run_background_task(shared_data: ArcMutexBackgroundData) {
@@ -59,12 +61,15 @@ pub async fn run_background_task(shared_data: ArcMutexBackgroundData) {
 
         let mut data = shared_data.lock().unwrap();
 
-        for source in &mut data.sources {
-            let (stats, logs) = fetch_data_from_file(source.name.clone());
-            source.set_stats(stats);
-            source.set_logs(logs);
-        }
+        for source in &mut data.sources.clone() {
+            let (_stats, logs) = fetch_data_from_file(source.clone());
 
+            match data.log_indexer.add_logs(source.id, logs) {
+                Ok(_) => (),
+                Err(e) => println!("{}", e),
+            }   
+        }
+            
         println!("finished");
 
     }

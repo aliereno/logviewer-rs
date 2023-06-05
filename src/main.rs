@@ -9,11 +9,14 @@ use actix_web::{App, HttpServer};
 use dotenv::dotenv;
 use fetcher::run_background_task;
 use model::BackgroundData;
+use model::LogIndexer;
 use model::Source;
 
 mod api;
 mod fetcher;
 mod model;
+mod store;
+
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -23,10 +26,11 @@ async fn main() -> std::io::Result<()> {
 
     let log_paths = std::env::var("LOG_PATHS").expect("env `LOG_PATHS` must be set.");
     
+    let indexer = LogIndexer::new().expect("error on indexer path init");
 
     // Create shared data structure
     let shared_data = Arc::new(Mutex::new(BackgroundData {
-        // Initialize the data fields as needed
+        log_indexer: indexer,
         sources: Source::from_env(log_paths),
     }));
 
@@ -40,7 +44,7 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .app_data(Data::new(shared_data.clone()))
             .configure(api::config_app)
-            .service(fs::Files::new("/", "./static").index_file("index.html"))
+            .service(fs::Files::new("/", "./ui").index_file("index.html"))
             .wrap(Logger::default())
     })
     .workers(1)

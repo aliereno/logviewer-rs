@@ -1,29 +1,36 @@
 use std::sync::{Mutex, Arc};
 
-use serde::{Deserialize, Serialize};
-
+use serde::{Deserialize as SerdeDeserialize, Serialize as SerdeSerialize};
+use tantivy::{IndexWriter, schema::{Schema, Field}, Index};
 
 pub type ArcMutexBackgroundData = Arc<Mutex<BackgroundData>>;
 
+pub struct LogIndexer {
+    pub index: Index,
+    pub writer: IndexWriter,
+    pub schema: Schema,
+    pub source_id_field: Field,
+    pub log_field: Field,
+}
+
 
 pub struct BackgroundData {
+    pub log_indexer: LogIndexer,
     pub sources: Vec<Source>
 }
 
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(SerdeSerialize, SerdeDeserialize, Debug, Clone)]
 pub struct Source {
     pub id: i32,
     pub name: String,
     #[serde(skip_serializing)]
     pub stats: Option<Stats>,
-    #[serde(skip_serializing)]
-    pub logs: Option<Vec<LogJson>>,
 }
 
 impl Source {
     pub fn new(id: i32, name: String) -> Source {
-        Source { id, name, stats: None, logs: None }
+        Source { id, name, stats: None }
     }
 
     pub fn from_env(env_string: String) -> Vec<Source> {
@@ -36,18 +43,12 @@ impl Source {
 
         result
     }
-
-    pub fn set_stats(&mut self, stats: Option<Stats>) {
-        self.stats = stats;
-    }
-
-    pub fn set_logs(&mut self, logs: Option<Vec<LogJson>>) {
-        self.logs = logs;
-    }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+
+#[derive(SerdeSerialize, SerdeDeserialize, Debug, Clone)]
 pub struct LogJson {
+    source_id: Option<i32>,
     #[serde(alias = "@timestamp")]
     timestamp: Option<String>,
     app_version: Option<String>,
@@ -64,7 +65,15 @@ pub struct LogJson {
     exception: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+impl LogJson {
+    
+    pub fn to_text(&self) -> String {
+        serde_json::to_string(&self).unwrap()
+    }
+}
+
+
+#[derive(SerdeSerialize, SerdeDeserialize, Debug, Clone)]
 pub struct LogEntry {
     timestamp: String,
     app_name: String,
@@ -72,7 +81,7 @@ pub struct LogEntry {
     pub log: Option<LogJson>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(SerdeSerialize, SerdeDeserialize, Debug, Clone)]
 pub struct Stats {
     pub total_server_errors: usize,
     pub total_client_errors: usize,
@@ -84,7 +93,7 @@ pub struct Stats {
 }
 
 impl LogEntry {
-    pub fn from_line(line: &str) -> Option<Self> {
+    pub fn from_line(source_id: i32, line: &str) -> Option<Self> {
         let parts: Vec<&str> = line.split(' ').collect();
         if parts.len() < 7 {
             return None;
@@ -93,7 +102,8 @@ impl LogEntry {
         let app_name = parts[3].trim_end_matches(':').to_string();
         let endpoint = parts[4].trim_end_matches(':').to_string();
         let json_str = parts[5..].join(" ");
-        let log: LogJson = serde_json::from_str(&json_str).ok()?;
+        let mut log: LogJson = serde_json::from_str(&json_str).ok()?;
+        log.source_id = Some(source_id);
 
         Some(LogEntry {
             timestamp,

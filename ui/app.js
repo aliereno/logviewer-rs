@@ -34,21 +34,8 @@ new Vue({
           this.totalPages = data.total_pages;
           this.currentPage = data.current_page;
         })
-        .then(this.fetchStatsBySource(sourceId))
         .catch(error => {
           console.error('Error fetching log data:', error);
-        });
-    },
-    fetchStatsBySource(sourceId) {
-      // Make a request to the API endpoint
-      fetch(`/api/source/${sourceId}/stats`)
-        .then(response => response.json())
-        .then(data => {
-          // Update the log data and metrics
-          this.stats = data;
-        })
-        .catch(error => {
-          console.error('Error fetching stats data:', error);
         });
     },
     setCurrentPage(page) {

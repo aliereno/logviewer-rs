@@ -16,47 +16,6 @@
         </div>
       </div>
       <div class="col-lg-9 main-content">
-        <!-- Metric boxes -->
-        <div class="metric-boxes mb-3">
-            <div class="row">
-                <div class="col-md-2">
-                <div class="metric-box">
-                    <h6>Request Time</h6>
-                    <p>Min: {{ stats?.min_request_time }} ms <br> Max: {{ stats?.max_request_time }} ms</p>
-                  </div>
-                </div>
-                <div class="col-md-2">
-                <div class="metric-box">
-                    <h6>Average Request Time</h6>
-                    <p>{{ stats?.median_request_time }} ms</p>
-                  </div>
-                </div>
-                <div class="col-md-2">
-                  <div class="metric-box">
-                    <h6>Total Requests</h6>
-                    <p>{{ stats?.total_requests }}</p>
-                  </div>
-                </div>
-                <div class="col-md-2">
-                  <div class="metric-box">
-                    <h6>Successful Requests</h6>
-                    <p>{{ stats?.total_success_requests }}</p>
-                  </div>
-                </div>
-                <div class="col-md-2">
-                  <div class="metric-box">
-                    <h6>Server Errors</h6>
-                    <p>{{ stats?.total_server_errors }}</p>
-                  </div>
-                </div>
-                <div class="col-md-2">
-                  <div class="metric-box">
-                    <h6>Client Errors</h6>
-                    <p>{{ stats?.total_client_errors }}</p>
-                </div>
-                </div>
-            </div>
-        </div>
         <!-- Filter section -->
         <div class="filters mb-3">
           <div class="row">
