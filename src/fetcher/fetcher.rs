@@ -1,4 +1,4 @@
-use std::io::BufRead;
+use std::{io::BufRead};
 use core::time::Duration;
 use actix_web::rt::time;
 
@@ -30,10 +30,10 @@ pub fn fetch_data_from_file(source: Source) -> (Stats, Vec<LogJson>) {
     };
 
     let mut logs: Vec<LogJson> = vec![];
-
+    let mut counter = 0;
     for entry in entries {
         match entry.log {
-            Some(log) => {
+            Some(mut log) => {
                 if log.response_status_code.unwrap_or_default() >= 500 {
                     stats.total_server_errors += 1;
                 } else if log.response_status_code.unwrap_or_default() >= 400 {
@@ -41,6 +41,8 @@ pub fn fetch_data_from_file(source: Source) -> (Stats, Vec<LogJson>) {
                 } else if log.response_status_code.unwrap_or_default() >= 200 {
                     stats.total_success_requests += 1;
                 }
+                counter += 1;
+                log.set_id(format!("{}#{}", source.id, counter));
                 logs.push(log);
             }
             _ => {}

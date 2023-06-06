@@ -48,6 +48,7 @@ impl Source {
 
 #[derive(SerdeSerialize, SerdeDeserialize, Debug, Clone)]
 pub struct LogJson {
+    id: Option<String>,
     source_id: Option<i32>,
     #[serde(alias = "@timestamp")]
     timestamp: Option<String>,
@@ -66,6 +67,10 @@ pub struct LogJson {
 }
 
 impl LogJson {
+    
+    pub fn set_id(&mut self, id: String) {
+        self.id = Some(id);
+    }
     
     pub fn to_text(&self) -> String {
         serde_json::to_string(&self).unwrap()

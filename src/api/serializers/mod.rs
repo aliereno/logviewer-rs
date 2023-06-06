@@ -2,15 +2,15 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
 pub struct PageOut<T> {
-    pub current_page: i32,
-    pub total_page: i32,
+    pub current_page: usize,
+    pub total_pages: usize,
     pub items: Option<Vec<T>>,
 }
 
 
 #[derive(Deserialize)]
 pub struct PageFilterIn {
-    pub current_page: Option<i32>,
-    pub total_page: Option<i32>,
+    pub current_page: Option<usize>,
+    pub page_size: Option<usize>,
     pub search: Option<String>,
 }
