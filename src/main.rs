@@ -16,7 +16,13 @@ mod api;
 mod fetcher;
 mod model;
 mod store;
+use core::time::Duration;
+use actix_web::rt::time;
 
+use peak_alloc::PeakAlloc;
+
+#[global_allocator]
+static PEAK_ALLOC: PeakAlloc = PeakAlloc;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -38,6 +44,17 @@ async fn main() -> std::io::Result<()> {
     let shared_data_clone = shared_data.clone();
     spawn(async move {
         run_background_task(shared_data_clone).await
+    });
+    spawn(async move {
+        let mut interval = time::interval(Duration::from_secs(2));
+        loop {
+            interval.tick().await;
+            
+            let current_mem = PEAK_ALLOC.current_usage_as_mb();
+            println!("This program currently uses {} MB of RAM.", current_mem);
+            let peak_mem = PEAK_ALLOC.peak_usage_as_gb();
+            println!("The max amount that was used {}", peak_mem);
+        }
     });
 
     HttpServer::new(move || {
