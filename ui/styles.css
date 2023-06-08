@@ -23,4 +23,28 @@
     font-size: 18px;
     font-weight: bold;
   }
-  
+  .log-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .log-table th,
+  .log-table td {
+    padding: 8px;
+    border: 1px solid #ccc;
+  }
+
+  .log-message {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px; /* Adjust the max-width as needed */
+  }
+
+  .log-details {
+    display: none;
+  }
+
+  .log-details.open {
+    display: block;
+  }

@@ -50,20 +50,19 @@
           <table class="table table-bordered">
             <thead>
               <tr>
-                <th>Url</th>
-                <th>Timestamp</th>
-                <th>Method</th>
-                <th>Duration</th>
-                <th>Response Status Code</th>
+                <th>Log</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="log in logs" :key="log.id">
-                <td>{{ log.request_url }}</td>
-                <td>{{ log.timestamp }}</td>
-                <td>{{ log.request_method }}</td>
-                <td>{{ log.duration }}</td>
-                <td>{{ log.response_status_code }}</td>
+              <tr v-for="(log, index) in logs" :key="log.id" @click="toggleDetails(log.id)">
+                <td class="log-message">
+                  <div>{{ truncateMessage(log.message) }}</div>
+                  <div v-if="selectedLog === log.id" class="log-details" v-bind:class="{ 'open': selectedLog === log.id }">
+                    <pre v-if="isJSON(log.message)">{{ isJSON(log.message) }}</pre>
+                    <span v-else>{{ log.message }}</span>
+                  </div>
+                </td>
+                
                 <!-- Render more columns as needed -->
               </tr>
             </tbody>

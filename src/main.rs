@@ -32,7 +32,7 @@ async fn main() -> std::io::Result<()> {
 
     let log_paths = std::env::var("LOG_PATHS").expect("env `LOG_PATHS` must be set.");
     
-    let indexer = LogIndexer::new().expect("error on indexer path init");
+    let indexer = LogIndexer::new("logs/indexes").expect("error on indexer path init");
 
     // Create shared data structure
     let shared_data = Arc::new(Mutex::new(BackgroundData {

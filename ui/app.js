@@ -10,6 +10,8 @@ new Vue({
     totalPages: 1,
     opened_source: null,
     searchFilter: null,
+    selectedLog: null,
+    logInDetails: null
   },
   mounted() {
     // Fetch initial log data when the app is mounted
@@ -60,5 +62,40 @@ new Vue({
       this.currentPage = page;
       this.fetchLogsBySource(this.opened_source);
     },
+    toggleDetails(log) {
+      if (this.selectedLog === log) {
+        this.selectedLog = null;
+      } else {
+        this.selectedLog = log;
+      }
+    },
+    truncateMessage(message) {
+      const firstLine = message.split('\n')[0];
+      return firstLine.length > 250 ? `${firstLine.slice(0, 250)}...` : firstLine;
+    },
+    isJSON(message) {
+      let copy = message;
+      try {
+        while (true) {
+          let json = this.formatJSON(copy);
+          if (json) {
+            return json
+          }
+          // TODO: look with regex ?
+          copy = copy.substr(copy.indexOf(" ") + 1);
+        }
+        return null;
+      } catch (error) {
+        alert(error);
+        return null;
+      }
+    },
+    formatJSON(message) {
+      try{
+        return JSON.stringify(JSON.parse(message), null, 2);
+      }catch(error) {
+        return false
+      }
+    }
   }
 });

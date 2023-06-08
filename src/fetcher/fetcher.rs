@@ -2,60 +2,28 @@ use std::{io::BufRead};
 use core::time::Duration;
 use actix_web::rt::time;
 
-use crate::model::{LogEntry, Stats, ArcMutexBackgroundData, LogJson, Source};
+use crate::model::{ArcMutexBackgroundData, Source};
 
-pub fn parse_log_file(source_id: i32, file_path: &str) -> Vec<LogEntry> {
+pub fn parse_log_file(file_path: &str) -> Vec<String> {
     let file = std::fs::File::open(file_path).expect("Unable to open file");
     let reader = std::io::BufReader::new(file);
     reader
         .lines()
         .filter_map(|line| line.ok())
-        .filter_map(|line| LogEntry::from_line(source_id, &line))
         .collect()
 }
 
-pub fn fetch_data_from_file(source: Source) -> (Stats, Vec<LogJson>) {
+pub fn fetch_data_from_file(source: Source) -> Vec<String> {
     let file_path = &source.name;
 
-    let entries = parse_log_file(source.id, file_path);
-    println!("readed file {} lines {}", file_path, entries.len());
-    let mut stats = Stats {
-        total_server_errors: 0,
-        total_client_errors: 0,
-        total_success_requests: 0,
-        total_requests: 0,
-        median_request_time: 0.0,
-        max_request_time: 0.0,
-        min_request_time: 0.0,
-    };
-
-    let mut logs: Vec<LogJson> = vec![];
-    let mut counter = 0;
-    for entry in entries {
-        match entry.log {
-            Some(mut log) => {
-                if log.response_status_code.unwrap_or_default() >= 500 {
-                    stats.total_server_errors += 1;
-                } else if log.response_status_code.unwrap_or_default() >= 400 {
-                    stats.total_client_errors += 1;
-                } else if log.response_status_code.unwrap_or_default() >= 200 {
-                    stats.total_success_requests += 1;
-                }
-                counter += 1;
-                log.set_id(format!("{}#{}", source.id, counter));
-                logs.push(log);
-            }
-            _ => {}
-        }
-    }
-    stats.total_requests =
-        stats.total_client_errors + stats.total_server_errors + stats.total_success_requests;
-
-    return (stats, logs);
+    let logs = parse_log_file(file_path);
+    println!("readed file {} lines {}", file_path, logs.len());
+    
+    return logs;
 }
 
 pub async fn run_background_task(shared_data: ArcMutexBackgroundData) {
-    let mut interval = time::interval(Duration::from_secs(180));
+    let mut interval = time::interval(Duration::from_secs(1800));
 
     loop {
         interval.tick().await;
@@ -64,7 +32,7 @@ pub async fn run_background_task(shared_data: ArcMutexBackgroundData) {
         let mut data = shared_data.lock().unwrap();
 
         for source in &mut data.sources.clone() {
-            let (_stats, logs) = fetch_data_from_file(source.clone());
+            let logs = fetch_data_from_file(source.clone());
 
             match data.log_indexer.add_logs(source.id, logs) {
                 Ok(_) => (),
