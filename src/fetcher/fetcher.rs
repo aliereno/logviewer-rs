@@ -34,7 +34,7 @@ pub async fn run_background_task(shared_data: ArcMutexBackgroundData) {
         for source in &mut data.sources.clone() {
             let logs = fetch_data_from_file(source.clone());
 
-            match data.log_indexer.add_logs(source.id, logs) {
+            match data.log_indexer.add_logs(source.id, &logs) {
                 Ok(_) => (),
                 Err(e) => println!("{}", e),
             }   

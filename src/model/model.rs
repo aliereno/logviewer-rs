@@ -11,7 +11,8 @@ pub struct LogIndexer {
     pub id_field: Field,
     pub source_id_field: Field,
     pub order_field: Field,
-    pub log_field: Field,
+    pub log_text_field: Field,
+    pub log_json_field: Field,
 }
 
 
