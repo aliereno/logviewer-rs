@@ -5,6 +5,7 @@ pub struct PageOut<T> {
     pub current_page: usize,
     pub total_pages: usize,
     pub items: Option<Vec<T>>,
+    pub total_count: usize,
 }
 
 

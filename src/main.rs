@@ -64,7 +64,7 @@ async fn main() -> std::io::Result<()> {
             .service(fs::Files::new("/", "./ui").index_file("index.html"))
             .wrap(Logger::default())
     })
-    .workers(1)
+    .workers(2)
     .bind(("0.0.0.0", 8080))?
     .run()
     .await

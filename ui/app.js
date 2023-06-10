@@ -8,24 +8,16 @@ new Vue({
     logs: [],
     currentPage: 1, // Current page number
     totalPages: 1,
+    totalCount: 0,
     opened_source: null,
     searchFilter: null,
     selectedLog: null,
-    logInDetails: null
+    logInDetails: null,
+    debounce: null
   },
   mounted() {
     // Fetch initial log data when the app is mounted
     this.fetchSources();
-  },
-  computed: {
-    debouncedSearch() {
-      return _.debounce(this.searchFilter, 3000); // Debounce the search function with a 3-second delay
-    },
-  },
-  watch: {
-    searchQuery() {
-      this.debouncedSearch(); // Trigger the debounced search function whenever searchQuery changes
-    },
   },
   methods: {
     fetchSources() {
@@ -50,6 +42,7 @@ new Vue({
           this.logs = data.items;
           this.totalPages = data.total_pages;
           this.currentPage = data.current_page;
+          this.totalCount = data.total_count;
         })
         .then(() => {
           this.$forceUpdate();
@@ -76,7 +69,7 @@ new Vue({
     isJSON(message) {
       let copy = message;
       try {
-        while (true) {
+        while (copy.indexOf(" ") != -1) {
           let json = this.formatJSON(copy);
           if (json) {
             return json
@@ -96,6 +89,13 @@ new Vue({
       }catch(error) {
         return false
       }
-    }
+    },
+    debounceSearch(event) {
+      clearTimeout(this.debounce)
+      this.debounce = setTimeout(() => {
+        this.searchFilter = event.target.value;
+        this.fetchLogsBySource(this.opened_source);
+      }, 600)
+    },
   }
 });

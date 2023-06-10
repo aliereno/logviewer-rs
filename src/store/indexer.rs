@@ -63,6 +63,10 @@ impl LogIndexer {
     }
 
     pub fn add_logs(&mut self, source_id: i32, logs: &Vec<String>) -> Result<(), Box<dyn Error>> {
+        // TODO: currently add_logs writes logs again and again
+        // find a way to skip if log exist in index
+
+
         let mut count = 0;
         for (index, log) in logs.iter().enumerate() {
             let doc = self.log_to_document(source_id, log.to_string(), index);
@@ -74,12 +78,16 @@ impl LogIndexer {
         Ok(())
     }
 
-    pub fn search_logs(&self, source_id: i32, page: usize, page_size: usize) -> Result<(Vec<serde_json::Value>, usize), Box<dyn Error>> {
-        let reader = self.index.reader()?;
-        let searcher = reader.searcher();
+    pub fn search_logs(&self, source_id: i32, page: usize, page_size: usize, search: Option<String>) -> Result<(Vec<serde_json::Value>, usize), Box<dyn Error>> {
+        let searcher = self.index.reader()?.searcher();
+
+        let mut search_query = format!("source_id:\"{}\"", source_id);
+        if search.is_some() {
+            search_query.push_str(&format!(" AND {}", search.unwrap()))
+        }
     
         let query_parser = QueryParser::for_index(&self.index, vec![self.id_field, self.source_id_field, self.log_json_field, self.log_text_field]);
-        let user_query = query_parser.parse_query(&format!("source_id:\"{}\"", source_id))?;
+        let user_query = query_parser.parse_query(&search_query)?;
         
         
         let offset = (page - 1) * page_size;
@@ -115,7 +123,8 @@ impl LogIndexer {
     }
 
     pub fn log_to_document(&self, source_id: i32, log: String, index: usize) -> Document {
-        
+        // TODO: find faster solutions for json parsing
+
         let re = Regex::new(r#"(?s)\{([^{}]*(?:\{[^{}]*}[^{}]*)*)}"#).unwrap();
         let matches: Vec<_> = re.captures_iter(&log).map(|caps| caps.get(0).unwrap()).collect();
         let modified_log: String = re.replace_all(&log, "{{JSON}}").to_string();

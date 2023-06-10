@@ -28,12 +28,14 @@ pub async fn source_logs(source_id: web::Path<i32>, query: web::Query<PageFilter
 
     let page_size = query.page_size.unwrap_or(20);
     let current_page = query.current_page.unwrap_or(1);
+    let search_query = query.search.clone();
 
-    let (items, total_count) = data.log_indexer.search_logs(source_detail.id, current_page, page_size).unwrap_or_default();
+    let (items, total_count) = data.log_indexer.search_logs(source_detail.id, current_page, page_size, search_query).unwrap_or_default();
     
     Ok(HttpResponse::Ok().json(PageOut {
         current_page: current_page,
         total_pages: total_count / page_size,
         items: Some(items),
+        total_count: total_count
     }))
 }

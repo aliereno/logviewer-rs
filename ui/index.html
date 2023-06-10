@@ -39,7 +39,7 @@
             </div>
             <div class="col-md-4">
               <label for="searchFilter">Search:</label>
-              <input type="text" id="searchFilter" class="form-control" placeholder="Search..." v-model="searchFilter">
+              <input type="text" id="searchFilter" class="form-control" placeholder="Search..." @input="debounceSearch">
             </div>
           </div>
         </div>
@@ -50,7 +50,7 @@
           <table class="table table-bordered">
             <thead>
               <tr>
-                <th>Log</th>
+                <th>Log <span v-if="totalCount"> Total: {{ totalCount }}</span></th>
               </tr>
             </thead>
             <tbody>
