@@ -8,6 +8,7 @@ use actix_web::web::Data;
 use actix_web::{App, HttpServer};
 use dotenv::dotenv;
 use fetcher::run_background_task;
+use model::AppConfig;
 use model::BackgroundData;
 use model::LogIndexer;
 use model::Source;
@@ -16,8 +17,8 @@ mod api;
 mod fetcher;
 mod model;
 mod store;
-use core::time::Duration;
 use actix_web::rt::time;
+use core::time::Duration;
 
 use peak_alloc::PeakAlloc;
 
@@ -30,26 +31,26 @@ async fn main() -> std::io::Result<()> {
 
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
 
-    let log_paths = std::env::var("LOG_PATHS").expect("env `LOG_PATHS` must be set.");
-    
-    let indexer = LogIndexer::new("logs/indexes").expect("error on indexer path init");
+    // Read the YAML file and parse it
+    let yaml_config = std::fs::read_to_string("config.yaml").expect("Failed to read config.yaml");
+    let app_config: AppConfig = serde_yaml::from_str(&yaml_config).expect("Failed to parse YAML");
+
+    let indexer = LogIndexer::new(&app_config.clone().index_dir).expect("error on indexer path init");
 
     // Create shared data structure
     let shared_data = Arc::new(Mutex::new(BackgroundData {
         log_indexer: indexer,
-        sources: Source::from_env(log_paths),
+        sources: Source::from_config(app_config),
     }));
 
     // background tasks
     let shared_data_clone = shared_data.clone();
-    spawn(async move {
-        run_background_task(shared_data_clone).await
-    });
+    spawn(async move { run_background_task(shared_data_clone).await });
     spawn(async move {
         let mut interval = time::interval(Duration::from_secs(2));
         loop {
             interval.tick().await;
-            
+
             let current_mem = PEAK_ALLOC.current_usage_as_mb();
             println!("This program currently uses {} MB of RAM.", current_mem);
             let peak_mem = PEAK_ALLOC.peak_usage_as_gb();

@@ -1,17 +1,18 @@
 use actix_web::{get, web, Error, HttpResponse, Result};
 
 use crate::{
-    api::serializers::{PageOut, PageFilterIn},
+    api::serializers::{PageFilterIn, PageOut},
     model::ArcMutexBackgroundData,
 };
 
 pub fn config_log(cfg: &mut web::ServiceConfig) {
-    cfg.service(source_list)
-        .service(source_logs);
+    cfg.service(source_list).service(source_logs);
 }
 
 #[get("/source")]
-pub async fn source_list(background_data: web::Data<ArcMutexBackgroundData>) -> Result<HttpResponse, Error> {
+pub async fn source_list(
+    background_data: web::Data<ArcMutexBackgroundData>,
+) -> Result<HttpResponse, Error> {
     let data = background_data.lock().unwrap();
     let sources = data.sources.clone();
 
@@ -19,8 +20,11 @@ pub async fn source_list(background_data: web::Data<ArcMutexBackgroundData>) -> 
 }
 
 #[get("/source/{source_id}/logs")]
-pub async fn source_logs(source_id: web::Path<i32>, query: web::Query<PageFilterIn>, background_data: web::Data<ArcMutexBackgroundData>) -> Result<HttpResponse, Error> {
-
+pub async fn source_logs(
+    source_id: web::Path<i32>,
+    query: web::Query<PageFilterIn>,
+    background_data: web::Data<ArcMutexBackgroundData>,
+) -> Result<HttpResponse, Error> {
     let data = background_data.lock().unwrap();
     let sources = data.sources.clone();
 
@@ -30,12 +34,15 @@ pub async fn source_logs(source_id: web::Path<i32>, query: web::Query<PageFilter
     let current_page = query.current_page.unwrap_or(1);
     let search_query = query.search.clone();
 
-    let (items, total_count) = data.log_indexer.search_logs(source_detail.id, current_page, page_size, search_query).unwrap_or_default();
-    
+    let (items, total_count) = data
+        .log_indexer
+        .search_logs(source_detail.id, current_page, page_size, search_query)
+        .unwrap_or_default();
+
     Ok(HttpResponse::Ok().json(PageOut {
         current_page: current_page,
         total_pages: total_count / page_size,
         items: Some(items),
-        total_count: total_count
+        total_count: total_count,
     }))
 }

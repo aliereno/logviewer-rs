@@ -1,24 +1,21 @@
-use std::{io::BufRead};
-use core::time::Duration;
 use actix_web::rt::time;
+use core::time::Duration;
+use std::io::BufRead;
 
 use crate::model::{ArcMutexBackgroundData, Source};
 
 pub fn parse_log_file(file_path: &str) -> Vec<String> {
-    let file = std::fs::File::open(file_path).expect("Unable to open file");
+    let file = std::fs::File::open(file_path).expect(&format!("Unable to open file: {}", file_path));
     let reader = std::io::BufReader::new(file);
-    reader
-        .lines()
-        .filter_map(|line| line.ok())
-        .collect()
+    reader.lines().filter_map(|line| line.ok()).collect()
 }
 
 pub fn fetch_data_from_file(source: Source) -> Vec<String> {
-    let file_path = &source.name;
+    let file_path = &source.path;
 
     let logs = parse_log_file(file_path);
     println!("readed file {} lines {}", file_path, logs.len());
-    
+
     return logs;
 }
 
@@ -37,10 +34,9 @@ pub async fn run_background_task(shared_data: ArcMutexBackgroundData) {
             match data.log_indexer.add_logs(source.id, &logs) {
                 Ok(_) => (),
                 Err(e) => println!("{}", e),
-            }   
+            }
         }
-            
-        println!("finished");
 
+        println!("finished");
     }
 }

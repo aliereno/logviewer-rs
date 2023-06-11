@@ -1,0 +1,6 @@
+index_dir: "./example/logs/indexes"
+logs:
+  - name: "Logs #1"
+    path: "./example/example.log"
+  - name: "Actix Logs"
+    path: "./example/example-actix.log"

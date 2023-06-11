@@ -8,7 +8,6 @@ pub struct PageOut<T> {
     pub total_count: usize,
 }
 
-
 #[derive(Deserialize)]
 pub struct PageFilterIn {
     pub current_page: Option<usize>,
