@@ -1,4 +1,6 @@
+use crate::fetcher::fetch_data_from_file;
 use crate::model::LogIndexer;
+use crate::model::Source;
 use regex::Regex;
 use serde_json::json;
 use std::error::Error;
@@ -180,12 +182,16 @@ impl LogIndexer {
         Ok(())
     }
 
-    pub fn reset_indexes_by_source_id(&mut self, source_id: i32) -> Result<(), Box<dyn Error>> {
+    pub fn reset_indexes_by_source_id(&mut self, source: Source) -> Result<(), Box<dyn Error>> {
 
-        self.delete_indexes_by_source_id(source_id).unwrap();
+        self.delete_indexes_by_source_id(source.id).unwrap();
 
-        //TODO: add index by source_id function
+        let logs = fetch_data_from_file(source.clone());
 
+        match self.add_logs(source.id, &logs) {
+            Ok(_) => (),
+            Err(e) => println!("{}", e),
+        }
         Ok(())
     }
 }

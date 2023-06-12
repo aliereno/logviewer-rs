@@ -58,7 +58,7 @@ pub async fn reset_indexes_by_source_id(
 
     let source_detail = sources.iter().find(|&s| s.id == *source_id).unwrap();
 
-    match data.log_indexer.reset_indexes_by_source_id(source_detail.id) {
+    match data.log_indexer.reset_indexes_by_source_id(source_detail.clone()) {
         Ok(_) => Ok(HttpResponse::Ok().json(json!({"message": "Success.".to_string()}))),
         Err(e) => Ok(HttpResponse::BadRequest().json(json!({"message": format!("error: {:?}", e)}))),
     }
