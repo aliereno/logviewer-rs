@@ -18,7 +18,7 @@ impl LogIndexer {
         let id_field = schema_builder.add_text_field("id", STRING | STORED);
         let source_id_field = schema_builder.add_i64_field("source_id", INDEXED | FAST);
         let order_field = schema_builder.add_i64_field("order", INDEXED | FAST);
-        let log_text_field = schema_builder.add_text_field("log_text", TEXT | STORED);
+        let log_text_field = schema_builder.add_text_field("text", TEXT | STORED);
         let log_json_field = schema_builder.add_json_field("log_json", TEXT | STORED);
         // Add other fields to the schema as needed
         let schema = schema_builder.build();
@@ -169,5 +169,23 @@ impl LogIndexer {
         }
 
         result
+    }
+
+    pub fn delete_indexes_by_source_id(&mut self, source_id: i32) -> Result<(), Box<dyn Error>> {
+
+        let source_id_term = Term::from_field_i64(self.source_id_field, source_id.into());
+        self.writer.delete_term(source_id_term.clone());
+        self.writer.commit()?;
+
+        Ok(())
+    }
+
+    pub fn reset_indexes_by_source_id(&mut self, source_id: i32) -> Result<(), Box<dyn Error>> {
+
+        self.delete_indexes_by_source_id(source_id).unwrap();
+
+        //TODO: add index by source_id function
+
+        Ok(())
     }
 }

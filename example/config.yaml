@@ -1,4 +1,4 @@
-index_dir: "./example/logs/indexes"
+index_dir: "./example/indexes"
 logs:
   - name: "Logs #1"
     path: "./example/example.log"

@@ -1,4 +1,5 @@
 use actix_web::{get, web, Error, HttpResponse, Result};
+use serde_json::json;
 
 use crate::{
     api::serializers::{PageFilterIn, PageOut},
@@ -6,7 +7,7 @@ use crate::{
 };
 
 pub fn config_log(cfg: &mut web::ServiceConfig) {
-    cfg.service(source_list).service(source_logs);
+    cfg.service(source_list).service(source_logs).service(reset_indexes_by_source_id);
 }
 
 #[get("/source")]
@@ -40,9 +41,25 @@ pub async fn source_logs(
         .unwrap_or_default();
 
     Ok(HttpResponse::Ok().json(PageOut {
-        current_page: current_page,
+        current_page,
         total_pages: total_count / page_size,
         items: Some(items),
-        total_count: total_count,
+        total_count,
     }))
+}
+
+#[get("/source/{source_id}/reset")]
+pub async fn reset_indexes_by_source_id(
+    source_id: web::Path<i32>,
+    background_data: web::Data<ArcMutexBackgroundData>,
+) -> Result<HttpResponse, Error> {
+    let mut data = background_data.lock().unwrap();
+    let sources = data.sources.clone();
+
+    let source_detail = sources.iter().find(|&s| s.id == *source_id).unwrap();
+
+    match data.log_indexer.reset_indexes_by_source_id(source_detail.id) {
+        Ok(_) => Ok(HttpResponse::Ok().json(json!({"message": "Success.".to_string()}))),
+        Err(e) => Ok(HttpResponse::BadRequest().json(json!({"message": format!("error: {:?}", e)}))),
+    }
 }

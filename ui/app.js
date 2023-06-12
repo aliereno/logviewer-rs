@@ -1,4 +1,5 @@
 Vue.component('paginate', VuejsPaginate)
+Vue.use(window['VueToastification'].default);
 
 new Vue({
   el: '#app',
@@ -13,7 +14,18 @@ new Vue({
     searchFilter: null,
     selectedLog: null,
     logInDetails: null,
-    debounce: null
+    debounce: null,
+    toaster_context: {
+      position: 'top-right',
+      timeout: 5000,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+      draggablePercent: 0.6,
+      showCloseButtonOnHover: false,
+      hideProgressBar: false,
+      closeButton: 'button',
+    }
   },
   mounted() {
     // Fetch initial log data when the app is mounted
@@ -49,6 +61,25 @@ new Vue({
         })
         .catch(error => {
           console.error('Error fetching log data:', error);
+        });
+    },
+    resetIndexes() {
+      if (this.opened_source == null){
+        return null
+      }
+      // Make a request to the API endpoint
+      fetch(`/api/source/${this.opened_source}/reset`)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error ${response.status}`);
+        }
+        return response.json();
+      })
+        .then(data => {
+          this.$toast.success(data.message, this.toaster_context);
+        })
+        .catch(error => {
+          this.$toast.error(error.message, this.toaster_context);
         });
     },
     setCurrentPage(page) {

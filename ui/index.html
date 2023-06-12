@@ -4,6 +4,7 @@
   <title>Log Viewer</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/css/bootstrap.min.css">
   <link rel="stylesheet" type="text/css" href="styles.css">
+  <link rel="stylesheet" href="https://unpkg.com/vue-toastification@latest/dist/index.css">
 </head>
 <body>
   <div id="app" class="container-fluid" style="padding: 50px;">
@@ -19,25 +20,10 @@
         <!-- Filter section -->
         <div class="filters mb-3">
           <div class="row">
-            <div class="col-md-4">
-              <label for="levelFilter">Filter by Level:</label>
-              <select id="levelFilter" class="form-select">
-                <option value="">All</option>
-                <option value="info">Info</option>
-                <option value="error">Error</option>
-                <option value="warning">Warning</option>
-              </select>
+            <div class="col-md-4" style="position: relative;">
+              <button id="resetIndexesButton" class="btn btn-warning" style="position: absolute; bottom: 0;" @click="resetIndexes">Reset Indexes</button>
             </div>
-            <div class="col-md-4">
-              <label for="sourceFilter">Filter by Source:</label>
-              <select id="sourceFilter" class="form-select">
-                <option value="">All</option>
-                <option value="source1">Source 1</option>
-                <option value="source2">Source 2</option>
-                <option value="source3">Source 3</option>
-              </select>
-            </div>
-            <div class="col-md-4">
+            <div class="col-md-8">
               <label for="searchFilter">Search:</label>
               <input type="text" id="searchFilter" class="form-control" placeholder="Search..." @input="debounceSearch">
             </div>
@@ -89,6 +75,7 @@
   </div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.6.14/vue.min.js"></script>
   <script src="https://unpkg.com/vuejs-paginate@0.9.0"></script>
+  <script src="https://unpkg.com/vue-toastification@latest"></script>
   <script src="app.js"></script>
 </body>
 </html>
