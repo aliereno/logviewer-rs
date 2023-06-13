@@ -16,7 +16,7 @@ use model::Source;
 mod api;
 mod fetcher;
 mod model;
-mod store;
+mod indexer;
 use actix_web::rt::time;
 use core::time::Duration;
 
