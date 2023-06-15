@@ -36,15 +36,12 @@ impl LogIndexer {
         let mut index_builder = Index::builder().schema(schema.clone());
         index_builder = index_builder.settings(settings);
 
-        /*
         // Create or open the index
         //let index = Index::create_from_tempdir(schema.clone())?;
         let index = match index_builder.create_in_dir(&index_dir) {
             Ok(i) => i,
             Err(_) => Index::open_in_dir(index_dir)?,
         };
-        */
-        let index = index_builder.create_in_ram().unwrap();
 
         // Create a writer for adding documents to the index
         let writer = index.writer(200_000_000)?;
@@ -173,6 +170,14 @@ impl LogIndexer {
         result
     }
 
+    pub fn delete_all_indexes(&mut self) -> Result<(), Box<dyn Error>> {
+
+        self.writer.delete_all_documents().unwrap();
+        self.writer.commit()?;
+
+        Ok(())
+    }
+
     pub fn delete_indexes_by_source_id(&mut self, source_id: i32) -> Result<(), Box<dyn Error>> {
 
         let source_id_term = Term::from_field_i64(self.source_id_field, source_id.into());
@@ -193,5 +198,14 @@ impl LogIndexer {
             Err(e) => println!("{}", e),
         }
         Ok(())
+    }
+}
+
+impl Drop for LogIndexer {
+    fn drop(&mut self) {
+        // Delete all documents when the instance is dropped
+        if let Err(e) = self.delete_all_indexes() {
+            eprintln!("Failed to delete documents: {}", e);
+        }
     }
 }
