@@ -1,19 +1,20 @@
 use actix_web::rt::time;
+use rev_buf_reader::RevBufReader;
 use core::time::Duration;
-use std::io::BufRead;
+use std::{io::BufRead, fs::File};
 
 use crate::model::{ArcMutexBackgroundData, Source};
 
-pub fn parse_log_file(file_path: &str) -> Vec<String> {
-    let file = std::fs::File::open(file_path).expect(&format!("Unable to open file: {}", file_path));
-    let reader = std::io::BufReader::new(file);
-    reader.lines().filter_map(|line| line.ok()).collect()
+fn lines_from_file(file_path: &str, limit: usize) -> Vec<String> {
+    let file: File = std::fs::File::open(file_path).expect(&format!("Unable to open file: {}", file_path));
+    let buf = RevBufReader::new(file);
+    buf.lines().take(limit).filter_map(|line| line.ok()).collect()
 }
 
 pub fn fetch_data_from_file(source: Source) -> Vec<String> {
     let file_path = &source.path;
 
-    let logs = parse_log_file(file_path);
+    let logs = lines_from_file(file_path, 1000);
     println!("readed file {} lines {}", file_path, logs.len());
 
     return logs;
