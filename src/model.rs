@@ -52,6 +52,8 @@ impl Source {
 pub struct AppConfig {
     pub index_dir: String,
     pub logs: Vec<LogConfig>,
+    pub host: String,
+    pub port: u16,
 }
 
 #[derive(Debug, Deserialize, Clone)]

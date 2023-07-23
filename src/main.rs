@@ -32,7 +32,7 @@ async fn main() -> std::io::Result<()> {
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
 
     // Read the YAML file and parse it
-    let yaml_config = std::fs::read_to_string("config.yaml").expect("Failed to read config.yaml");
+    let yaml_config = std::fs::read_to_string("logviewer_config.yaml").expect("Failed to read logviewer_config.yaml");
     let app_config: AppConfig = serde_yaml::from_str(&yaml_config).expect("Failed to parse YAML");
 
     let indexer = LogIndexer::new(&app_config.clone().index_dir).expect("error on indexer path init");
@@ -40,7 +40,7 @@ async fn main() -> std::io::Result<()> {
     // Create shared data structure
     let shared_data = Arc::new(Mutex::new(BackgroundData {
         log_indexer: indexer,
-        sources: Source::from_config(app_config),
+        sources: Source::from_config(app_config.clone()),
     }));
 
     // background tasks
@@ -66,7 +66,7 @@ async fn main() -> std::io::Result<()> {
             .wrap(Logger::default())
     })
     .workers(2)
-    .bind(("0.0.0.0", 8080))?
+    .bind((app_config.host, app_config.port))?
     .run()
     .await
 }

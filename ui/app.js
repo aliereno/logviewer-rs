@@ -125,6 +125,7 @@ new Vue({
       clearTimeout(this.debounce)
       this.debounce = setTimeout(() => {
         this.searchFilter = event.target.value;
+        this.currentPage = 1;
         this.fetchLogsBySource(this.opened_source);
       }, 600)
     },
