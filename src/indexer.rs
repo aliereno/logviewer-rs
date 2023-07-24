@@ -64,7 +64,7 @@ impl LogIndexer {
         // find a way to skip if log exist in index
 
         let mut count = 0;
-        for (index, log) in logs.iter().enumerate() {
+        for (index, log) in logs.iter().rev().enumerate() {
             let doc = self.log_to_document(source_id, log.to_string(), index);
             self.writer.add_document(doc)?;
             count += 1;
@@ -148,10 +148,12 @@ impl LogIndexer {
         doc.add_text(self.log_text_field, modified_log);
 
         for matched_text in matches {
-            doc.add_json_object(
-                self.log_json_field,
-                serde_json::from_str(matched_text.as_str()).unwrap(),
-            );
+            if let Ok(key) = serde_json::from_str(matched_text.as_str()) {
+                doc.add_json_object(
+                    self.log_json_field,
+                    key,
+                );
+            }
         }
 
         doc
