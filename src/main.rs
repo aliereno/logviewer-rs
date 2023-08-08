@@ -7,7 +7,8 @@ use actix_web::rt::spawn;
 use actix_web::web::Data;
 use actix_web::{App, HttpServer};
 use dotenv::dotenv;
-use fetcher::run_background_task;
+use tasks::print_memory_usage;
+use tasks::run_indexer_in_background;
 use model::AppConfig;
 use model::BackgroundData;
 use model::LogIndexer;
@@ -17,13 +18,9 @@ mod api;
 mod fetcher;
 mod model;
 mod indexer;
-use actix_web::rt::time;
-use core::time::Duration;
+mod helper;
+mod tasks;
 
-use peak_alloc::PeakAlloc;
-
-#[global_allocator]
-static PEAK_ALLOC: PeakAlloc = PeakAlloc;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -45,16 +42,8 @@ async fn main() -> std::io::Result<()> {
 
     // background tasks
     let shared_data_clone = shared_data.clone();
-    spawn(async move { run_background_task(shared_data_clone).await });
-    spawn(async move {
-        let mut interval = time::interval(Duration::from_secs(2));
-        loop {
-            interval.tick().await;
-
-            let current_mem = PEAK_ALLOC.current_usage_as_mb();
-            println!("This program currently uses {} MB of RAM.", current_mem);
-        }
-    });
+    spawn(async move { print_memory_usage().await });
+    spawn(async move { run_indexer_in_background(shared_data_clone).await });
 
     HttpServer::new(move || {
         App::new()

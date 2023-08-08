@@ -1,15 +1,15 @@
 use serde::{Deserialize, Serialize};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, RwLock};
 use tantivy::{
     schema::{Field, Schema},
-    Index, IndexWriter,
+    Index,
 };
 
 pub type ArcMutexBackgroundData = Arc<Mutex<BackgroundData>>;
-
+pub type RwLockIndexWriter= Arc<RwLock<tantivy::IndexWriter>>;
 pub struct LogIndexer {
     pub index: Index,
-    pub writer: IndexWriter,
+    pub rwlock_writer: RwLockIndexWriter,
     pub schema: Schema,
     pub id_field: Field,
     pub source_id_field: Field,
@@ -28,11 +28,12 @@ pub struct Source {
     pub id: i32,
     pub name: String,
     pub path: String,
+    pub limit: i32,
 }
 
 impl Source {
-    pub fn new(id: i32, name: String, path: String) -> Source {
-        Source { id, name, path }
+    pub fn new(id: i32, name: String, path: String, limit: Option<i32>) -> Source {
+        Source { id, name, path, limit: limit.unwrap_or(1000) }
     }
 
     pub fn from_config(config: AppConfig) -> Vec<Source> {
@@ -40,7 +41,7 @@ impl Source {
 
         let mut index: i32 = 1;
         for log_config in config.logs {
-            result.push(Source::new(index, log_config.name, log_config.path));
+            result.push(Source::new(index, log_config.name, log_config.path, log_config.limit));
             index += 1;
         }
 
@@ -60,4 +61,5 @@ pub struct AppConfig {
 pub struct LogConfig {
     pub name: String,
     pub path: String,
+    pub limit: Option<i32>
 }

@@ -38,7 +38,7 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 200px; /* Adjust the max-width as needed */
+    max-width: auto; /* Adjust the max-width as needed */
   }
 
   .log-details {

@@ -13,7 +13,7 @@
         <!-- Sidebar content -->
         <h4 class="sidebar-heading">Log Sources</h4>
         <div class="list-group">
-          <a v-for="source in sources" :key="source.id" href="#" class="list-group-item list-group-item-action" @click="fetchLogsBySource(source.id)">{{ source.name }}</a>
+          <a v-for="source in sources" :key="source.id" href="#" class="list-group-item list-group-item-action" @click="openLogsBySource(source.id)">{{ source.name }}</a>
         </div>
       </div>
       <div class="col-lg-9 main-content">

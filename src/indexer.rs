@@ -1,9 +1,13 @@
-use crate::fetcher::fetch_data_from_file;
+
 use crate::model::LogIndexer;
-use crate::model::Source;
-use regex::Regex;
+use crate::model::RwLockIndexWriter;
+
 use serde_json::json;
 use std::error::Error;
+use std::sync::Arc;
+use std::sync::RwLock;
+
+
 use tantivy::collector::Count;
 use tantivy::collector::TopDocs;
 use tantivy::query::QueryParser;
@@ -33,8 +37,7 @@ impl LogIndexer {
             ..Default::default()
         };
 
-        let mut index_builder = Index::builder().schema(schema.clone());
-        index_builder = index_builder.settings(settings);
+        let index_builder = Index::builder().settings(settings).schema(schema.clone());
 
         // Create or open the index
         //let index = Index::create_from_tempdir(schema.clone())?;
@@ -44,11 +47,11 @@ impl LogIndexer {
         };
 
         // Create a writer for adding documents to the index
-        let writer = index.writer(200_000_000)?;
+        let rwlock_writer: RwLockIndexWriter = Arc::new(RwLock::new(index.writer(2_000_000_000)?));
 
         Ok(LogIndexer {
             index,
-            writer,
+            rwlock_writer,
             schema,
             id_field,
             source_id_field,
@@ -57,21 +60,6 @@ impl LogIndexer {
             log_json_field,
             // Initialize other fields as needed
         })
-    }
-
-    pub fn add_logs(&mut self, source_id: i32, logs: &Vec<String>) -> Result<(), Box<dyn Error>> {
-        // TODO: currently add_logs writes logs again and again
-        // find a way to skip if log exist in index
-
-        let mut count = 0;
-        for (index, log) in logs.iter().rev().enumerate() {
-            let doc = self.log_to_document(source_id, log.to_string(), index);
-            self.writer.add_document(doc)?;
-            count += 1;
-        }
-        println!("addlogs : {}", count);
-        self.writer.commit()?;
-        Ok(())
     }
 
     pub fn search_logs(
@@ -131,34 +119,6 @@ impl LogIndexer {
         Ok((results, total_count))
     }
 
-    pub fn log_to_document(&self, source_id: i32, log: String, index: usize) -> Document {
-        // TODO: find faster solutions for json parsing
-
-        let re = Regex::new(r#"(?s)\{([^{}]*(?:\{[^{}]*}[^{}]*)*)}"#).unwrap();
-        let matches: Vec<_> = re
-            .captures_iter(&log)
-            .map(|caps| caps.get(0).unwrap())
-            .collect();
-        let modified_log: String = re.replace_all(&log, "{{JSON}}").to_string();
-
-        let mut doc = Document::new();
-        doc.add_text(self.id_field, format!("{}#{}", source_id, index));
-        doc.add_i64(self.source_id_field, source_id.into());
-        doc.add_i64(self.order_field, index.try_into().unwrap());
-        doc.add_text(self.log_text_field, modified_log);
-
-        for matched_text in matches {
-            if let Ok(key) = serde_json::from_str(matched_text.as_str()) {
-                doc.add_json_object(
-                    self.log_json_field,
-                    key,
-                );
-            }
-        }
-
-        doc
-    }
-
     pub fn _log_replace_json(&self, log: String, json_vec: Vec<&Value>) -> String {
         let mut result = log.to_string();
         for item in json_vec {
@@ -174,33 +134,23 @@ impl LogIndexer {
 
     pub fn delete_all_indexes(&mut self) -> Result<(), Box<dyn Error>> {
 
-        self.writer.delete_all_documents().unwrap();
-        self.writer.commit()?;
+        let mut index_writer_wlock = self.rwlock_writer.write().unwrap();
+        index_writer_wlock.delete_all_documents().unwrap();
+        index_writer_wlock.commit()?;
 
         Ok(())
     }
 
     pub fn delete_indexes_by_source_id(&mut self, source_id: i32) -> Result<(), Box<dyn Error>> {
 
+        let mut index_writer_wlock = self.rwlock_writer.write().unwrap();
         let source_id_term = Term::from_field_i64(self.source_id_field, source_id.into());
-        self.writer.delete_term(source_id_term.clone());
-        self.writer.commit()?;
+        index_writer_wlock.delete_term(source_id_term.clone());
+        index_writer_wlock.commit()?;
 
         Ok(())
     }
 
-    pub fn reset_indexes_by_source_id(&mut self, source: Source) -> Result<(), Box<dyn Error>> {
-
-        self.delete_indexes_by_source_id(source.id).unwrap();
-
-        let logs = fetch_data_from_file(source.clone());
-
-        match self.add_logs(source.id, &logs) {
-            Ok(_) => (),
-            Err(e) => println!("{}", e),
-        }
-        Ok(())
-    }
 }
 
 impl Drop for LogIndexer {

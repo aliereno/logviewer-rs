@@ -44,10 +44,14 @@ new Vue({
         });
 
     },
+    openLogsBySource(sourceId) {
+      this.currentPage = 1;
+      this.fetchLogsBySource(sourceId);
+    },
     fetchLogsBySource(sourceId) {
       this.opened_source = sourceId;
       // Make a request to the API endpoint
-      fetch(`/api/source/${sourceId}/logs?current_page=${this.currentPage}` + (this.searchFilter ? `&search=${this.searchFilter}` : `` ))
+      fetch(`/api/source/${sourceId}/logs?page_size=100&current_page=${this.currentPage}` + (this.searchFilter ? `&search=${this.searchFilter}` : `` ))
         .then(response => response.json())
         .then(data => {
           // Update the log data and metrics
