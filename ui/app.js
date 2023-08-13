@@ -10,7 +10,7 @@ new Vue({
     currentPage: 1, // Current page number
     totalPages: 1,
     totalCount: 0,
-    opened_source: null,
+    openedSource: null,
     searchFilter: null,
     selectedLog: null,
     logInDetails: null,
@@ -49,7 +49,7 @@ new Vue({
       this.fetchLogsBySource(sourceId);
     },
     fetchLogsBySource(sourceId) {
-      this.opened_source = sourceId;
+      this.openedSource = sourceId;
       // Make a request to the API endpoint
       fetch(`/api/source/${sourceId}/logs?page_size=100&current_page=${this.currentPage}` + (this.searchFilter ? `&search=${this.searchFilter}` : `` ))
         .then(response => response.json())
@@ -68,11 +68,11 @@ new Vue({
         });
     },
     resetIndexes() {
-      if (this.opened_source == null){
+      if (this.openedSource == null){
         return null
       }
       // Make a request to the API endpoint
-      fetch(`/api/source/${this.opened_source}/reset`)
+      fetch(`/api/source/${this.openedSource}/reset`)
       .then(response => {
         if (!response.ok) {
           throw new Error(`HTTP error ${response.status}`);
@@ -84,11 +84,13 @@ new Vue({
         })
         .catch(error => {
           this.$toast.error(error.message, this.toaster_context);
+        }).then(data => {
+          this.fetchLogsBySource(this.openedSource);
         });
     },
     setCurrentPage(page) {
       this.currentPage = page;
-      this.fetchLogsBySource(this.opened_source);
+      this.fetchLogsBySource(this.openedSource);
     },
     toggleDetails(log) {
       if (this.selectedLog === log) {
@@ -130,7 +132,7 @@ new Vue({
       this.debounce = setTimeout(() => {
         this.searchFilter = event.target.value;
         this.currentPage = 1;
-        this.fetchLogsBySource(this.opened_source);
+        this.fetchLogsBySource(this.openedSource);
       }, 600)
     },
   }

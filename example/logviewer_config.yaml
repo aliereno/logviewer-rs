@@ -4,5 +4,7 @@ index_dir: "./example/indexes"
 logs:
   - name: "Logs #1"
     path: "./example/example.log"
+    limit: 1000000
   - name: "Actix Logs"
     path: "./example/example-actix.log"
+    limit: 100

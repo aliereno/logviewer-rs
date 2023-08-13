@@ -3,7 +3,7 @@ use serde_json::json;
 
 use crate::{
     api::serializers::{PageFilterIn, PageOut},
-    tasks::run_indexer_by_source_id, model::ArcMutexBackgroundData,
+    model::ArcMutexBackgroundData,
 };
 
 pub fn config_log(cfg: &mut web::ServiceConfig) {
@@ -53,13 +53,11 @@ pub async fn reset_indexes_by_source_id(
     source_id: web::Path<i32>,
     background_data: web::Data<ArcMutexBackgroundData>,
 ) -> Result<HttpResponse, Error> {
-    let mut data = background_data.lock().unwrap();
+    let data = background_data.lock().unwrap();
     let sources = data.sources.clone();
 
     let source_detail = sources.iter().find(|&s| s.id == *source_id).unwrap();
+    data.task_manager.send_source_indexing_task(source_detail.clone());
 
-    match run_indexer_by_source_id(&mut data.log_indexer, source_detail.clone()) {
-        Ok(_) => Ok(HttpResponse::Ok().json(json!({"message": "Success.".to_string()}))),
-        Err(e) => Ok(HttpResponse::BadRequest().json(json!({"message": format!("error: {:?}", e)}))),
-    }
+    Ok(HttpResponse::Ok().json(json!({"message": "On queue.".to_string()})))
 }

@@ -1,6 +1,7 @@
 
+use crate::model::IndexFields;
 use crate::model::LogIndexer;
-use crate::model::RwLockIndexWriter;
+use crate::model::IndexWriter;
 
 use serde_json::json;
 use std::error::Error;
@@ -46,20 +47,24 @@ impl LogIndexer {
             Err(_) => Index::open_in_dir(index_dir)?,
         };
 
-        // Create a writer for adding documents to the index
-        let rwlock_writer: RwLockIndexWriter = Arc::new(RwLock::new(index.writer(2_000_000_000)?));
-
         Ok(LogIndexer {
             index,
-            rwlock_writer,
             schema,
-            id_field,
-            source_id_field,
-            order_field,
-            log_text_field,
-            log_json_field,
-            // Initialize other fields as needed
+            fields: IndexFields{
+                id_field,
+                source_id_field,
+                order_field,
+                log_text_field,
+                log_json_field,
+            }
         })
+    }
+
+    pub fn create_writer(&self) -> Result<IndexWriter, Box<dyn Error>> {
+        // Create a writer for adding documents to the index
+        let writer = Arc::new(RwLock::new(self.index.writer(2_000_000_000)?));
+
+        Ok(IndexWriter {writer, fields: self.fields.clone()})
     }
 
     pub fn search_logs(
@@ -79,10 +84,10 @@ impl LogIndexer {
         let query_parser = QueryParser::for_index(
             &self.index,
             vec![
-                self.id_field,
-                self.source_id_field,
-                self.log_json_field,
-                self.log_text_field,
+                self.fields.id_field,
+                self.fields.source_id_field,
+                self.fields.log_json_field,
+                self.fields.log_text_field,
             ],
         );
         let user_query = query_parser.parse_query(&search_query)?;
@@ -99,9 +104,9 @@ impl LogIndexer {
 
         for (_score, doc_address) in search_results {
             let _searcher = searcher.doc(doc_address)?;
-            let id = _searcher.get_first(self.id_field);
-            let log_message = _searcher.get_first(self.log_text_field);
-            let log_json: Vec<&Value> = _searcher.get_all(self.log_json_field).collect();
+            let id = _searcher.get_first(self.fields.id_field);
+            let log_message = _searcher.get_first(self.fields.log_text_field);
+            let log_json: Vec<&Value> = _searcher.get_all(self.fields.log_json_field).collect();
 
             if log_message.is_some() && id.is_some() {
                 match (log_message.unwrap().as_text(), id.unwrap().as_text()) {
@@ -132,9 +137,13 @@ impl LogIndexer {
         result
     }
 
+}
+
+impl IndexWriter {
+
     pub fn delete_all_indexes(&mut self) -> Result<(), Box<dyn Error>> {
 
-        let mut index_writer_wlock = self.rwlock_writer.write().unwrap();
+        let mut index_writer_wlock = self.writer.write().unwrap();
         index_writer_wlock.delete_all_documents().unwrap();
         index_writer_wlock.commit()?;
 
@@ -143,17 +152,16 @@ impl LogIndexer {
 
     pub fn delete_indexes_by_source_id(&mut self, source_id: i32) -> Result<(), Box<dyn Error>> {
 
-        let mut index_writer_wlock = self.rwlock_writer.write().unwrap();
-        let source_id_term = Term::from_field_i64(self.source_id_field, source_id.into());
+        let mut index_writer_wlock = self.writer.write().unwrap();
+        let source_id_term = Term::from_field_i64(self.fields.source_id_field, source_id.into());
         index_writer_wlock.delete_term(source_id_term.clone());
         index_writer_wlock.commit()?;
 
         Ok(())
     }
-
 }
 
-impl Drop for LogIndexer {
+impl Drop for IndexWriter {
     fn drop(&mut self) {
         // Delete all documents when the instance is dropped
         if let Err(e) = self.delete_all_indexes() {

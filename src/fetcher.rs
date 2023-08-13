@@ -1,9 +1,9 @@
 use rev_buf_reader::RevBufReader;
 use std::{io::BufRead, fs::File};
 
-use crate::{model::{Source, LogIndexer}, helper::add_logs_with_thread};
+use crate::{model::{Source, IndexFields, RwLockIndexWriter}, helper::{add_logs_with_thread, commit_on_index_writer}};
 
-fn lines_from_file(source: Source, log_indexer: &mut LogIndexer) {
+fn lines_from_file(source: Source, index_writer: &mut RwLockIndexWriter, fields: IndexFields) {
     let limit = source.limit as usize;
     let file_path: &str = &source.path;
 
@@ -25,16 +25,16 @@ fn lines_from_file(source: Source, log_indexer: &mut LogIndexer) {
             counter -= 1;
 
             if counter % 100000 == 0 {
-                let index_writer_clone = log_indexer.rwlock_writer.clone();
-                let handle = add_logs_with_thread(index_writer_clone, source.id, batch_data, counter, log_indexer.id_field, log_indexer.source_id_field, log_indexer.order_field, log_indexer.log_text_field, log_indexer.log_json_field);
+                let index_writer_clone = index_writer.clone();
+                let handle = add_logs_with_thread(index_writer_clone, source.id, batch_data, counter, fields.clone());
                 handles.push(handle);
                 batch_data = vec![];
             }
         }
     }
     if !batch_data.is_empty(){
-        let index_writer_clone = log_indexer.rwlock_writer.clone();
-        let handle = add_logs_with_thread(index_writer_clone, source.id, batch_data, counter, log_indexer.id_field, log_indexer.source_id_field, log_indexer.order_field, log_indexer.log_text_field, log_indexer.log_json_field);
+        let index_writer_clone = index_writer.clone();
+        let handle = add_logs_with_thread(index_writer_clone, source.id, batch_data, counter, fields.clone());
         handles.push(handle);
     }
     
@@ -42,11 +42,10 @@ fn lines_from_file(source: Source, log_indexer: &mut LogIndexer) {
         let _ = handle.join();
     }
 
-    let mut index_writer_wlock = log_indexer.rwlock_writer.write().unwrap();
-    let _ = index_writer_wlock.commit();
+    commit_on_index_writer(index_writer.clone());
 }
 
-pub fn fetch_data_from_file(source: Source, log_indexer: &mut LogIndexer) {
+pub fn fetch_data_from_file(source: Source, index_writer: &mut RwLockIndexWriter, fields: IndexFields) {
 
-    lines_from_file(source, log_indexer);
+    lines_from_file(source, index_writer, fields);
 }

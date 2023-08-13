@@ -7,8 +7,8 @@ use actix_web::rt::spawn;
 use actix_web::web::Data;
 use actix_web::{App, HttpServer};
 use dotenv::dotenv;
+use model::TaskManager;
 use tasks::print_memory_usage;
-use tasks::run_indexer_in_background;
 use model::AppConfig;
 use model::BackgroundData;
 use model::LogIndexer;
@@ -33,17 +33,20 @@ async fn main() -> std::io::Result<()> {
     let app_config: AppConfig = serde_yaml::from_str(&yaml_config).expect("Failed to parse YAML");
 
     let indexer = LogIndexer::new(&app_config.clone().index_dir).expect("error on indexer path init");
+    let task_manager: TaskManager = TaskManager::new(Arc::new(Mutex::new(indexer.create_writer().unwrap())));
+    
+    let source_list = Source::from_config(app_config.clone());
+    task_manager.send_source_indexing_task_multiple(source_list.clone());
 
     // Create shared data structure
     let shared_data = Arc::new(Mutex::new(BackgroundData {
         log_indexer: indexer,
-        sources: Source::from_config(app_config.clone()),
+        sources: source_list,
+        task_manager: Arc::new(task_manager),
     }));
 
     // background tasks
-    let shared_data_clone = shared_data.clone();
     spawn(async move { print_memory_usage().await });
-    spawn(async move { run_indexer_in_background(shared_data_clone).await });
 
     HttpServer::new(move || {
         App::new()
@@ -52,7 +55,6 @@ async fn main() -> std::io::Result<()> {
             .service(fs::Files::new("/", "./ui").index_file("index.html"))
             .wrap(Logger::default())
     })
-    .workers(2)
     .bind((app_config.host, app_config.port))?
     .run()
     .await

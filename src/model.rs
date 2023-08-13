@@ -1,16 +1,22 @@
 use serde::{Deserialize, Serialize};
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, Mutex, RwLock, mpsc};
 use tantivy::{
     schema::{Field, Schema},
     Index,
 };
 
 pub type ArcMutexBackgroundData = Arc<Mutex<BackgroundData>>;
-pub type RwLockIndexWriter= Arc<RwLock<tantivy::IndexWriter>>;
+pub type RwLockIndexWriter = Arc<RwLock<tantivy::IndexWriter>>;
+pub type MutexIndexWriter = Arc<Mutex<IndexWriter>>;
+
 pub struct LogIndexer {
     pub index: Index,
-    pub rwlock_writer: RwLockIndexWriter,
     pub schema: Schema,
+    pub fields: IndexFields
+}
+
+#[derive(Clone)]
+pub struct IndexFields {
     pub id_field: Field,
     pub source_id_field: Field,
     pub order_field: Field,
@@ -18,9 +24,15 @@ pub struct LogIndexer {
     pub log_json_field: Field,
 }
 
+pub struct IndexWriter {
+    pub writer: Arc<RwLock<tantivy::IndexWriter>>,
+    pub fields: IndexFields
+}
+
 pub struct BackgroundData {
     pub log_indexer: LogIndexer,
     pub sources: Vec<Source>,
+    pub task_manager: Arc<TaskManager>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -62,4 +74,18 @@ pub struct LogConfig {
     pub name: String,
     pub path: String,
     pub limit: Option<i32>
+}
+
+
+pub trait Task: Send {
+    fn execute(&self, write: &mut MutexIndexWriter);
+}
+
+pub struct SourceIndexingTask {
+    pub source: Source,
+}
+
+pub struct TaskManager {
+    pub sender: Arc<Mutex<mpsc::Sender<Box<dyn Task>>>>,
+    pub index_writer: MutexIndexWriter,
 }

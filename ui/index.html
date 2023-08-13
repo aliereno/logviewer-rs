@@ -9,14 +9,14 @@
 <body>
   <div id="app" class="container-fluid" style="padding: 50px;">
     <div class="row">
-      <div class="col-lg-3 sidebar">
+      <div class="col-lg-2 sidebar">
         <!-- Sidebar content -->
         <h4 class="sidebar-heading">Log Sources</h4>
         <div class="list-group">
           <a v-for="source in sources" :key="source.id" href="#" class="list-group-item list-group-item-action" @click="openLogsBySource(source.id)">{{ source.name }}</a>
         </div>
       </div>
-      <div class="col-lg-9 main-content">
+      <div class="col-lg-10 main-content">
         <!-- Filter section -->
         <div class="filters mb-3">
           <div class="row">
@@ -31,44 +31,47 @@
         </div>
         
 
-        <!-- Table listing -->
-        <div class="table-responsive">
-          <table class="table table-bordered">
-            <thead>
-              <tr>
-                <th>Log <span v-if="totalCount"> Total: {{ totalCount }}</span></th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(log, index) in logs" :key="log.id" @click="toggleDetails(log.id)">
-                <td class="log-message">
-                  <div>{{ truncateMessage(log.message) }}</div>
-                  <div v-if="selectedLog === log.id" class="log-details" v-bind:class="{ 'open': selectedLog === log.id }">
-                    <pre v-if="isJSON(log.message)">{{ isJSON(log.message) }}</pre>
-                    <span v-else>{{ log.message }}</span>
-                  </div>
-                </td>
-                
-                <!-- Render more columns as needed -->
-              </tr>
-            </tbody>
-          </table>
+        <div>
+          <span v-if="!openedSource">Select a source from sidebar</span>
+          <span v-else-if="!logs.length">No items found!</span>
+          <!-- Table listing -->
+          <div v-else class="table-responsive">
+            <table class="table table-bordered">
+              <thead>
+                <tr>
+                  <th>Log <span v-if="totalCount"> Total: {{ totalCount }}</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(log, index) in logs" :key="log.id" @click="toggleDetails(log.id)">
+                  <td class="log-message">
+                    <div>{{ truncateMessage(log.message) }}</div>
+                    <div v-if="selectedLog === log.id" class="log-details" v-bind:class="{ 'open': selectedLog === log.id }">
+                      <pre v-if="isJSON(log.message)">{{ isJSON(log.message) }}</pre>
+                      <span v-else>{{ log.message }}</span>
+                    </div>
+                  </td>
+                  <!-- Render more columns as needed -->
+                </tr>
+              </tbody>
+            </table>
+            <paginate
+              :page-count="totalPages"
+              :click-handler="setCurrentPage"
+              :prev-text="'Prev'"
+              :next-text="'Next'"
+              :container-class="'pagination'"
+              :page-class="'page-item'"
+              :page-link-class="'page-link'"
+              :prev-class="'page-item'"
+              :next-class="'page-item'"
+              :prev-link-class="'page-link'"
+              :next-link-class="'page-link'"
+            >
+            </paginate>
+          </div>
         </div>
 
-        <paginate
-          :page-count="totalPages"
-          :click-handler="setCurrentPage"
-          :prev-text="'Prev'"
-          :next-text="'Next'"
-          :container-class="'pagination'"
-          :page-class="'page-item'"
-          :page-link-class="'page-link'"
-          :prev-class="'page-item'"
-          :next-class="'page-item'"
-          :prev-link-class="'page-link'"
-          :next-link-class="'page-link'"
-        >
-        </paginate>
         
       </div>
     </div>
