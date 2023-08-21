@@ -5,10 +5,12 @@ use tantivy::{doc, Document, IndexWriter};
 use lazy_static::lazy_static;
 use std::{thread::{JoinHandle, self}, sync::{Arc, RwLock}};
 
-use crate::model::IndexFields;
+use crate::model::{IndexFields, RwLockStat};
 
 lazy_static! {
     static ref JSON_REGEX: Regex =
+        // TODO: compare 
+        // Regex::new(r#"\{.+"#).unwrap();
         Regex::new(r#"(?s)\{([^{}]*(?:\{[^{}]*}[^{}]*)*)}"#).unwrap();
 }
 
@@ -60,4 +62,10 @@ pub fn add_logs_with_thread(rwlock_writer: Arc<RwLock<tantivy::IndexWriter>>, so
 pub fn commit_on_index_writer(rwlock_writer: Arc<RwLock<IndexWriter>>) {
     let mut index_writer_wlock = rwlock_writer.write().unwrap();
     let _ = index_writer_wlock.commit();
+}
+
+
+pub fn update_stat(stat: RwLockStat, new_value: i64) {
+    let mut writer = stat.write().unwrap();
+    writer.queue_count += new_value;
 }

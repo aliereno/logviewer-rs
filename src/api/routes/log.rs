@@ -7,10 +7,10 @@ use crate::{
 };
 
 pub fn config_log(cfg: &mut web::ServiceConfig) {
-    cfg.service(source_list).service(source_logs).service(reset_indexes_by_source_id);
+    cfg.service(web::scope("/source").service(source_list).service(source_logs).service(reset_indexes_by_source_id));
 }
 
-#[get("/source")]
+#[get("")]
 pub async fn source_list(
     background_data: web::Data<ArcMutexBackgroundData>,
 ) -> Result<HttpResponse, Error> {
@@ -20,7 +20,7 @@ pub async fn source_list(
     Ok(HttpResponse::Ok().json(sources))
 }
 
-#[get("/source/{source_id}/logs")]
+#[get("/{source_id}/logs")]
 pub async fn source_logs(
     source_id: web::Path<i32>,
     query: web::Query<PageFilterIn>,
@@ -48,7 +48,7 @@ pub async fn source_logs(
     }))
 }
 
-#[get("/source/{source_id}/reset")]
+#[get("/{source_id}/reset")]
 pub async fn reset_indexes_by_source_id(
     source_id: web::Path<i32>,
     background_data: web::Data<ArcMutexBackgroundData>,

@@ -25,11 +25,20 @@ new Vue({
       showCloseButtonOnHover: false,
       hideProgressBar: false,
       closeButton: 'button',
-    }
+    },
+    ramChart: null,
+    queueChart: null,
   },
   mounted() {
+    this.initializeCharts();
+
     // Fetch initial log data when the app is mounted
     this.fetchSources();
+
+    // Fetch data every 2 seconds
+    setInterval(() => {
+      this.fetchMetrics();
+    }, 2000); // 2000 milliseconds = 2 seconds
   },
   methods: {
     fetchSources() {
@@ -134,6 +143,80 @@ new Vue({
         this.currentPage = 1;
         this.fetchLogsBySource(this.openedSource);
       }, 600)
+    },
+    initializeCharts() {
+      const options = {
+        scales: {
+          yAxes: [{ ticks: { beginAtZero: true }}],
+          xAxes: [{
+            type: 'time',
+            time: {
+              unitStepSize: 30,
+              unit: 'second'
+            },
+            gridlines: { display: false }
+          }]
+        },
+        tooltips: {	enabled: false },
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false
+      };
+
+      this.ramChart = new Chart(document.getElementById('ramChart').getContext('2d'), {
+        type: 'line',
+        data: {
+          labels: [],
+          datasets: [{
+            label: 'Ram Usage',
+            data: [],
+            backgroundColor: '#f87979',
+            lineTension: 0.2,
+            pointRadius: 0,
+          }]
+        },
+        options
+      });
+      this.queueChart = new Chart(document.getElementById('queueChart').getContext('2d'), {
+        type: 'line',
+        data: {
+          labels: [],
+          datasets: [{
+            label: 'Queue Count',
+            data: [],
+            backgroundColor: '#7AF5F9',
+            lineTension: 0.2,
+            pointRadius: 0,
+          }]
+        },
+        options
+      });
+    },
+    fetchMetrics() {
+      try {
+        fetch('/api/stat')
+          .then(response => response.json())
+          .then(data => {
+            const { ram_usage, queue_count } = data;
+    
+            this.updateChart(this.ramChart, ram_usage);
+            this.updateChart(this.queueChart, queue_count);
+          })
+      } catch (error) {
+        console.error('Error fetching metrics:', error);
+      }
+    },
+    updateChart(chart, value) {
+
+      const timestamp = Date.now();
+			if (chart.data.labels.length > 50) {
+				chart.data.datasets.forEach(function (dataset) { dataset.data.shift(); });
+				chart.data.labels.shift();
+			}
+
+      chart.data.datasets[0].data.push(value);
+			chart.data.labels.push(timestamp);
+      chart.update();
     },
   }
 });

@@ -14,3 +14,9 @@ pub struct PageFilterIn {
     pub page_size: Option<usize>,
     pub search: Option<String>,
 }
+
+#[derive(Serialize, Deserialize)]
+pub struct StatOut {
+    pub ram_usage: f64,
+    pub queue_count: i64,
+}

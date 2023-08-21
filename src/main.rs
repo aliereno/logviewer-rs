@@ -1,5 +1,6 @@
 use std::sync::Arc;
 use std::sync::Mutex;
+use std::sync::RwLock;
 
 use actix_files as fs;
 use actix_web::middleware::Logger;
@@ -7,6 +8,8 @@ use actix_web::rt::spawn;
 use actix_web::web::Data;
 use actix_web::{App, HttpServer};
 use dotenv::dotenv;
+use model::RwLockStat;
+use model::Stat;
 use model::TaskManager;
 use tasks::print_memory_usage;
 use model::AppConfig;
@@ -32,8 +35,9 @@ async fn main() -> std::io::Result<()> {
     let yaml_config = std::fs::read_to_string("logviewer_config.yaml").expect("Failed to read logviewer_config.yaml");
     let app_config: AppConfig = serde_yaml::from_str(&yaml_config).expect("Failed to parse YAML");
 
+    let rw_stats: RwLockStat = Arc::new(RwLock::new(Stat { ram_usage: 0 as f64, queue_count: 0 as i64 }));
     let indexer = LogIndexer::new(&app_config.clone().index_dir).expect("error on indexer path init");
-    let task_manager: TaskManager = TaskManager::new(Arc::new(Mutex::new(indexer.create_writer().unwrap())));
+    let task_manager: TaskManager = TaskManager::new(Arc::new(Mutex::new(indexer.create_writer().unwrap())), rw_stats.clone());
     
     let source_list = Source::from_config(app_config.clone());
     task_manager.send_source_indexing_task_multiple(source_list.clone());
@@ -43,10 +47,11 @@ async fn main() -> std::io::Result<()> {
         log_indexer: indexer,
         sources: source_list,
         task_manager: Arc::new(task_manager),
+        stats: rw_stats.clone()
     }));
 
     // background tasks
-    spawn(async move { print_memory_usage().await });
+    spawn(async move { print_memory_usage(rw_stats).await });
 
     HttpServer::new(move || {
         App::new()

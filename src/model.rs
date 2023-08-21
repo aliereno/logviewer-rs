@@ -8,6 +8,7 @@ use tantivy::{
 pub type ArcMutexBackgroundData = Arc<Mutex<BackgroundData>>;
 pub type RwLockIndexWriter = Arc<RwLock<tantivy::IndexWriter>>;
 pub type MutexIndexWriter = Arc<Mutex<IndexWriter>>;
+pub type RwLockStat = Arc<RwLock<Stat>>;
 
 pub struct LogIndexer {
     pub index: Index,
@@ -33,6 +34,7 @@ pub struct BackgroundData {
     pub log_indexer: LogIndexer,
     pub sources: Vec<Source>,
     pub task_manager: Arc<TaskManager>,
+    pub stats: RwLockStat,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -88,4 +90,10 @@ pub struct SourceIndexingTask {
 pub struct TaskManager {
     pub sender: Arc<Mutex<mpsc::Sender<Box<dyn Task>>>>,
     pub index_writer: MutexIndexWriter,
+    pub stats: RwLockStat,
+}
+
+pub struct Stat {
+    pub ram_usage: f64,
+    pub queue_count: i64,
 }
