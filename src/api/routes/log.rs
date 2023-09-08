@@ -3,7 +3,7 @@ use serde_json::json;
 
 use crate::{
     api::serializers::{PageFilterIn, PageOut},
-    model::ArcMutexBackgroundData,
+    model::ArcMutexBackgroundData, error::MyError,
 };
 
 pub fn config_log(cfg: &mut web::ServiceConfig) {
@@ -13,8 +13,10 @@ pub fn config_log(cfg: &mut web::ServiceConfig) {
 #[get("")]
 pub async fn source_list(
     background_data: web::Data<ArcMutexBackgroundData>,
-) -> Result<HttpResponse, Error> {
-    let data = background_data.lock().unwrap();
+) -> Result<HttpResponse, MyError> {
+    let data = background_data.lock().map_err(|_| {
+        MyError::InternalError
+    })?;
     let sources = data.sources.clone();
 
     Ok(HttpResponse::Ok().json(sources))
@@ -25,11 +27,16 @@ pub async fn source_logs(
     source_id: web::Path<i32>,
     query: web::Query<PageFilterIn>,
     background_data: web::Data<ArcMutexBackgroundData>,
-) -> Result<HttpResponse, Error> {
-    let data = background_data.lock().unwrap();
+) -> Result<HttpResponse, MyError> {
+    let data = background_data.lock().map_err(|_| {
+        MyError::InternalError
+    })?;
     let sources = data.sources.clone();
 
-    let source_detail = sources.iter().find(|&s| s.id == *source_id).unwrap();
+    let source_detail = sources.iter().find(|&s| s.id == *source_id);
+    if source_detail.is_none() {
+        return Err(MyError::NotFound("source".to_string()));
+    }
 
     let page_size = query.page_size.unwrap_or(20);
     let current_page = query.current_page.unwrap_or(1);
@@ -37,7 +44,7 @@ pub async fn source_logs(
 
     let (items, total_count) = data
         .log_indexer
-        .search_logs(source_detail.id, current_page, page_size, search_query)
+        .search_logs(source_detail.unwrap().id, current_page, page_size, search_query)
         .unwrap_or_default();
 
     Ok(HttpResponse::Ok().json(PageOut {
@@ -52,12 +59,17 @@ pub async fn source_logs(
 pub async fn reset_indexes_by_source_id(
     source_id: web::Path<i32>,
     background_data: web::Data<ArcMutexBackgroundData>,
-) -> Result<HttpResponse, Error> {
-    let data = background_data.lock().unwrap();
+) -> Result<HttpResponse, MyError> {
+    let data = background_data.lock().map_err(|_| {
+        MyError::InternalError
+    })?;
     let sources = data.sources.clone();
 
-    let source_detail = sources.iter().find(|&s| s.id == *source_id).unwrap();
-    data.task_manager.send_source_indexing_task(source_detail.clone());
+    let source_detail = sources.iter().find(|&s| s.id == *source_id);
+    if source_detail.is_none() {
+        return Err(MyError::NotFound("source".to_string()));
+    }
+    data.task_manager.send_source_indexing_task(source_detail.unwrap().clone());
 
     Ok(HttpResponse::Ok().json(json!({"message": "On queue.".to_string()})))
 }

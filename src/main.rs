@@ -18,6 +18,7 @@ use model::LogIndexer;
 use model::Source;
 
 mod api;
+mod error;
 mod fetcher;
 mod model;
 mod indexer;
