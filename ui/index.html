@@ -5,6 +5,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/css/bootstrap.min.css">
   <link rel="stylesheet" type="text/css" href="styles.css">
   <link rel="stylesheet" href="https://unpkg.com/vue-toastification@latest/dist/index.css">
+  <link rel="stylesheet" href="https://unpkg.com/vue-json-pretty@1.9.4/lib/styles.css">
 </head>
 <body>
   <div id="app" class="container-fluid" style="padding: 50px;">
@@ -52,11 +53,16 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="(log, index) in logs" :key="log.id" @click="toggleDetails(log.id)">
+                <tr v-for="(log, index) in logs" :key="log.id">
                   <td class="log-message">
-                    <div>{{ truncateMessage(log.message) }}</div>
+                    <div @click="toggleDetails(log.id)">{{ truncateMessage(log.message) }}</div>
                     <div v-if="selectedLog === log.id" class="log-details" v-bind:class="{ 'open': selectedLog === log.id }">
-                      <pre v-if="isJSON(log.message)">{{ isJSON(log.message) }}</pre>
+                      <div v-if="isJSON(log.message, false)">
+                        <vue-json-pretty 
+                          :data="isJSON(log.message, false)"
+                          @node-click="copyJsonValue"
+                        />
+                      </div>
                       <span v-else>{{ log.message }}</span>
                     </div>
                   </td>
@@ -91,6 +97,7 @@
   <script src="https://unpkg.com/vue-toastification@latest"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9/dist/Chart.bundle.min.js"></script>
   <script src="https://unpkg.com/vue-chartjs@3.4.0/dist/vue-chartjs.js"></script>
+  <script src="https://unpkg.com/vue-json-pretty@1.9.4/lib/vue-json-pretty.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

@@ -1,4 +1,5 @@
 Vue.component('paginate', VuejsPaginate)
+Vue.component("vue-json-pretty", VueJsonPretty.default)
 Vue.use(window['VueToastification'].default);
 
 new Vue({
@@ -131,7 +132,7 @@ new Vue({
     },
     formatJSON(message) {
       try{
-        return JSON.stringify(JSON.parse(message), null, 2);
+        return JSON.parse(message);
       }catch(error) {
         return false
       }
@@ -217,6 +218,11 @@ new Vue({
       chart.data.datasets[0].data.push(value);
 			chart.data.labels.push(timestamp);
       chart.update();
+    },
+    copyJsonValue(node) {
+      let val = node.key + ': ' + node.content;
+      navigator.clipboard.writeText(val);
+      this.$toast.info("Copied to clipboard", {...this.toaster_context, timeout: 1800});
     },
   }
 });
