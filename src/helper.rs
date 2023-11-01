@@ -20,7 +20,7 @@ pub fn log_to_document(source_id: i32, log: String, index: usize, fields: IndexF
 
     let matches: Vec<_> = JSON_REGEX
         .captures_iter(&log)
-        .map(|caps| caps.get(0).unwrap())
+        .map(|caps| caps.get(0))
         .collect();
     let modified_log: String = JSON_REGEX.replace_all(&log, "{{JSON}}").to_string();
 
@@ -31,12 +31,18 @@ pub fn log_to_document(source_id: i32, log: String, index: usize, fields: IndexF
     doc.add_text(fields.log_text_field, modified_log);
 
     for matched_text in matches {
-        if let Ok(key) = serde_json::from_str(matched_text.as_str()) {
-            doc.add_json_object(
-                fields.log_json_field,
-                key,
-            );
+        match matched_text {
+            Some(m) => {
+                if let Ok(key) = serde_json::from_str(m.as_str()) {
+                    doc.add_json_object(
+                        fields.log_json_field,
+                        key,
+                    );
+                }
+            },
+            None => ()
         }
+        
     }
 
     doc

@@ -34,25 +34,28 @@ pub async fn source_logs(
     let sources = data.sources.clone();
 
     let source_detail = sources.iter().find(|&s| s.id == *source_id);
-    if source_detail.is_none() {
-        return Err(MyError::NotFound("source".to_string()));
+
+    match source_detail {
+        None => Err(MyError::NotFound("source".to_string())),
+        Some(s) => {
+            let page_size = query.page_size.unwrap_or(20);
+            let current_page = query.current_page.unwrap_or(1);
+            let search_query = query.search.clone();
+        
+            let (items, total_count) = data
+                .log_indexer
+                .search_logs(s.id, current_page, page_size, search_query)
+                .unwrap_or_default();
+        
+            Ok(HttpResponse::Ok().json(PageOut {
+                current_page,
+                total_pages: total_count / page_size,
+                items: Some(items),
+                total_count,
+            }))
+        }
     }
 
-    let page_size = query.page_size.unwrap_or(20);
-    let current_page = query.current_page.unwrap_or(1);
-    let search_query = query.search.clone();
-
-    let (items, total_count) = data
-        .log_indexer
-        .search_logs(source_detail.unwrap().id, current_page, page_size, search_query)
-        .unwrap_or_default();
-
-    Ok(HttpResponse::Ok().json(PageOut {
-        current_page,
-        total_pages: total_count / page_size,
-        items: Some(items),
-        total_count,
-    }))
 }
 
 #[get("/{source_id}/reset")]
@@ -66,10 +69,13 @@ pub async fn reset_indexes_by_source_id(
     let sources = data.sources.clone();
 
     let source_detail = sources.iter().find(|&s| s.id == *source_id);
-    if source_detail.is_none() {
-        return Err(MyError::NotFound("source".to_string()));
-    }
-    data.task_manager.send_source_indexing_task(source_detail.unwrap().clone());
 
-    Ok(HttpResponse::Ok().json(json!({"message": "On queue.".to_string()})))
+    match source_detail {
+        None => Err(MyError::NotFound("source".to_string())),
+        Some(s) => {
+            data.task_manager.send_source_indexing_task(s.clone());
+
+            Ok(HttpResponse::Ok().json(json!({"message": "On queue.".to_string()})))
+        }
+    }
 }

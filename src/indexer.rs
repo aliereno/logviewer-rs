@@ -77,9 +77,12 @@ impl LogIndexer {
         let searcher = self.index.reader()?.searcher();
 
         let mut search_query = format!("source_id:\"{}\"", source_id);
-        if search.is_some() {
-            search_query.push_str(&format!(" AND {}", search.unwrap()))
+
+        match search {
+            Some(s) => search_query.push_str(&format!(" AND {}", s)),
+            None => ()
         }
+        
 
         let query_parser = QueryParser::for_index(
             &self.index,
@@ -127,11 +130,16 @@ impl LogIndexer {
     pub fn _log_replace_json(&self, log: String, json_vec: Vec<&Value>) -> String {
         let mut result = log;
         for item in json_vec {
-            result = result.replacen(
-                "{{JSON}}",
-                &serde_json::to_string(item.as_json().unwrap()).unwrap_or_default(),
-                1,
-            );
+            match item.as_json() {
+                Some(js) => {
+                    result = result.replacen(
+                        "{{JSON}}",
+                        &serde_json::to_string(js).unwrap_or_default(),
+                        1,
+                    )
+                },
+                None => ()
+            }
         }
 
         result

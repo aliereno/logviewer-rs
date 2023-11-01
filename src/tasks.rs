@@ -59,7 +59,7 @@ impl TaskManager {
     pub fn send_source_indexing_task(&self, source: Source) {
         update_stat(self.stats.clone(), 1);
         // Send the task to the processing thread
-        self.sender.lock().unwrap().send(Box::new(SourceIndexingTask{source})).expect("Failed to send task");
+        let _ = self.sender.lock().unwrap().send(Box::new(SourceIndexingTask{source}));
     }
 
     pub fn send_source_indexing_task_multiple(&self, source_list: Vec<Source>) {
