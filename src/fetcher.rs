@@ -7,7 +7,7 @@ fn lines_from_file(source: Source, index_writer: &mut RwLockIndexWriter, fields:
     let limit = source.limit as usize;
     let file_path: &str = &source.path;
 
-    let file: File = std::fs::File::open(file_path).expect(&format!("Unable to open file: {}", file_path));
+    let file: File = std::fs::File::open(file_path).unwrap_or_else(|_| panic!("Unable to open file: {}", file_path));
     
     let buf = RevBufReader::new(file);
 
@@ -34,7 +34,7 @@ fn lines_from_file(source: Source, index_writer: &mut RwLockIndexWriter, fields:
     }
     if !batch_data.is_empty(){
         let index_writer_clone = index_writer.clone();
-        let handle = add_logs_with_thread(index_writer_clone, source.id, batch_data, counter, fields.clone());
+        let handle = add_logs_with_thread(index_writer_clone, source.id, batch_data, counter, fields);
         handles.push(handle);
     }
     

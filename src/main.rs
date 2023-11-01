@@ -36,7 +36,7 @@ async fn main() -> std::io::Result<()> {
     let yaml_config = std::fs::read_to_string("logviewer_config.yaml").expect("Failed to read logviewer_config.yaml");
     let app_config: AppConfig = serde_yaml::from_str(&yaml_config).expect("Failed to parse YAML");
 
-    let rw_stats: RwLockStat = Arc::new(RwLock::new(Stat { ram_usage: 0 as f64, queue_count: 0 as i64 }));
+    let rw_stats: RwLockStat = Arc::new(RwLock::new(Stat { ram_usage: 0 as f64, queue_count: 0_i64 }));
     let indexer = LogIndexer::new(&app_config.clone().index_dir).expect("error on indexer path init");
     let task_manager: TaskManager = TaskManager::new(Arc::new(Mutex::new(indexer.create_writer().unwrap())), rw_stats.clone());
     

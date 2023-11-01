@@ -46,16 +46,16 @@ pub fn log_to_document(source_id: i32, log: String, index: usize, fields: IndexF
 
 pub fn add_logs_with_thread(rwlock_writer: Arc<RwLock<tantivy::IndexWriter>>, source_id: i32, logs: Vec<String>, start_index: usize, fields: IndexFields) -> JoinHandle<()> {
 
-    let index_writer_clone = rwlock_writer.clone();
-    let handle = thread::spawn(move || {
+    let index_writer_clone = rwlock_writer;
+    
+
+    thread::spawn(move || {
         let index_writer_rlock = index_writer_clone.read().unwrap();
         for (index, log) in logs.iter().rev().enumerate() {
             let doc = log_to_document(source_id, log.to_string(), start_index + index, fields.clone());
             let _ = index_writer_rlock.add_document(doc);
         };
-    });
-
-    return handle;
+    })
 }
 
 

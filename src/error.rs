@@ -4,7 +4,7 @@ use actix_web::{
     HttpResponse,
 };
 use serde::Serialize;
-use thiserror;
+
 
 #[derive(Debug, Serialize)]
 struct ErrorResponse {

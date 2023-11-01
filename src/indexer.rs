@@ -42,7 +42,7 @@ impl LogIndexer {
 
         // Create or open the index
         //let index = Index::create_from_tempdir(schema.clone())?;
-        let index = match index_builder.create_in_dir(&index_dir) {
+        let index = match index_builder.create_in_dir(index_dir) {
             Ok(i) => i,
             Err(_) => Index::open_in_dir(index_dir)?,
         };
@@ -125,7 +125,7 @@ impl LogIndexer {
     }
 
     pub fn _log_replace_json(&self, log: String, json_vec: Vec<&Value>) -> String {
-        let mut result = log.to_string();
+        let mut result = log;
         for item in json_vec {
             result = result.replacen(
                 "{{JSON}}",
@@ -154,7 +154,7 @@ impl IndexWriter {
 
         let mut index_writer_wlock = self.writer.write().unwrap();
         let source_id_term = Term::from_field_i64(self.fields.source_id_field, source_id.into());
-        index_writer_wlock.delete_term(source_id_term.clone());
+        index_writer_wlock.delete_term(source_id_term);
         index_writer_wlock.commit()?;
 
         Ok(())
