@@ -109,14 +109,15 @@ impl LogIndexer {
             let _searcher = searcher.doc(doc_address)?;
             let id = _searcher.get_first(self.fields.id_field);
             let log_message = _searcher.get_first(self.fields.log_text_field);
-            let log_json: Vec<&Value> = _searcher.get_all(self.fields.log_json_field).collect();
+            let log_json: Option<&Value> = _searcher.get_first(self.fields.log_json_field);
 
             if log_message.is_some() && id.is_some() {
                 match (log_message.unwrap().as_text(), id.unwrap().as_text()) {
                     (Some(l), Some(i)) => {
                         results.push(json!({
                             "id": i,
-                            "message": self._log_replace_json(l.to_string(), log_json),
+                            "message": l,
+                            "parsed_json": log_json,
                         }));
                     }
                     (_, _) => (),
@@ -125,24 +126,6 @@ impl LogIndexer {
         }
 
         Ok((results, total_count))
-    }
-
-    pub fn _log_replace_json(&self, log: String, json_vec: Vec<&Value>) -> String {
-        let mut result = log;
-        for item in json_vec {
-            match item.as_json() {
-                Some(js) => {
-                    result = result.replacen(
-                        "{{JSON}}",
-                        &serde_json::to_string(js).unwrap_or_default(),
-                        1,
-                    )
-                },
-                None => ()
-            }
-        }
-
-        result
     }
 
 }

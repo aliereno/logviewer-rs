@@ -3,7 +3,8 @@ use std::{io::BufRead, fs::File};
 
 use crate::{model::{Source, IndexFields, RwLockIndexWriter}, helper::{add_logs_with_thread, commit_on_index_writer}};
 
-fn lines_from_file(source: Source, index_writer: &mut RwLockIndexWriter, fields: IndexFields) {
+
+pub fn fetch_data_from_file(source: Source, index_writer: &mut RwLockIndexWriter, fields: IndexFields) {
     let limit = source.limit as usize;
     let file_path: &str = &source.path;
 
@@ -43,9 +44,4 @@ fn lines_from_file(source: Source, index_writer: &mut RwLockIndexWriter, fields:
     }
 
     commit_on_index_writer(index_writer.clone());
-}
-
-pub fn fetch_data_from_file(source: Source, index_writer: &mut RwLockIndexWriter, fields: IndexFields) {
-
-    lines_from_file(source, index_writer, fields);
 }

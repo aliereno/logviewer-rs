@@ -2,22 +2,14 @@
 <html>
 <head>
   <title>Log Viewer</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
   <link rel="stylesheet" type="text/css" href="styles.css">
   <link rel="stylesheet" href="https://unpkg.com/vue-toastification@latest/dist/index.css">
   <link rel="stylesheet" href="https://unpkg.com/vue-json-pretty@1.9.4/lib/styles.css">
 </head>
 <body>
-  <div id="app" class="container-fluid" style="padding: 50px;">
-    <div class="row">
-      <div class="col-lg-6">
-        <canvas id="ramChart" width="400" height="200"></canvas>
-      </div>
-      <div class="col-lg-6">
-        <canvas id="queueChart" width="400" height="200"></canvas>
-      </div>
-    </div>
-    
+  <div id="app" class="container-fluid" style="padding: 50px;" @keydown="handleArrowKeys">
+  
     <div class="row">
       <div class="col-lg-2 sidebar">
         <!-- Sidebar content -->
@@ -30,8 +22,9 @@
         <!-- Filter section -->
         <div class="filters mb-3">
           <div class="row">
-            <div class="col-md-4" style="position: relative;">
-              <button id="resetIndexesButton" class="btn btn-warning" style="position: absolute; bottom: 0;" @click="resetIndexes">Reset Indexes</button>
+            <div class="col-md-4 d-flex justify-content-center" >
+              <button id="resetIndexesButton" class="btn btn-warning" @click="resetIndexes">Reset Indexes</button>
+              <button id="showDetailSpansButton" class="btn btn-light" style="margin-left: 5px;" @click="showDetailSpans">Toggle Details</button>
             </div>
             <div class="col-md-8">
               <label for="searchFilter">Search:</label>
@@ -55,15 +48,13 @@
               <tbody>
                 <tr v-for="(log, index) in logs" :key="log.id">
                   <td class="log-message">
-                    <div @click="toggleDetails(log.id)">{{ truncateMessage(log.message) }}</div>
-                    <div v-if="selectedLog === log.id" class="log-details" v-bind:class="{ 'open': selectedLog === log.id }">
-                      <div v-if="isJSON(log.message, false)">
-                        <vue-json-pretty 
-                          :data="isJSON(log.message, false)"
-                          @node-click="copyJsonValue"
-                        />
+                    <div @click="toggleDetails(index)" >
+                      {{ truncateMessage(log.message) }}
+                      <div class="flex-container flex flex-wrap" v-if="detailSpans && log.parsed_json">
+                        <div v-for="each in parseDetails(log.parsed_json)">
+                          <div class="flex-item"><span :class="each.class">{{each.value}}</span></div>
+                        </div>
                       </div>
-                      <span v-else>{{ log.message }}</span>
                     </div>
                   </td>
                   <!-- Render more columns as needed -->
@@ -87,17 +78,30 @@
             </paginate>
           </div>
         </div>
+      </div>
 
-        
+      <div @keydown="handleArrowKeys" ref="offcanvasScrolling" class="offcanvas offcanvas-end" data-bs-scroll="true" data-bs-backdrop="false" tabindex="-1" id="offcanvasScrolling" aria-labelledby="offcanvasScrollingLabel"  style="width: 38%;">
+        <div class="offcanvas-header">
+          <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body">
+          <span class="offcanvas-title" id="offcanvasScrollingLabel" style="background-color: #e4e9ecb5; display: block; width: 100%; white-space: pre-wrap;">{{selectedLog?.message}}</span>
+          
+          <div style="margin-top: 20px;" v-if="selectedLog?.parsed_json">
+            <vue-json-pretty :data="selectedLog?.parsed_json" @node-click="copyJsonValue"></vue-json-pretty>
+          </div>
+        </div>
+      </div>
       </div>
     </div>
   </div>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.6.14/vue.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.6.14/vue.js"></script>
   <script src="https://unpkg.com/vuejs-paginate@0.9.0"></script>
   <script src="https://unpkg.com/vue-toastification@latest"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9/dist/Chart.bundle.min.js"></script>
   <script src="https://unpkg.com/vue-chartjs@3.4.0/dist/vue-chartjs.js"></script>
   <script src="https://unpkg.com/vue-json-pretty@1.9.4/lib/vue-json-pretty.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

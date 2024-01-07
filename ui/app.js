@@ -5,6 +5,17 @@ Vue.use(window['VueToastification'].default);
 new Vue({
   el: '#app',
   data: {
+    badge_classes: [
+      "badge bg-info text-dark",
+      // "badge bg-primary",
+      "badge bg-secondary",
+      "badge bg-success",
+      // "badge bg-danger",
+      "badge bg-warning text-dark",
+      "badge bg-info text-dark",
+      // "badge bg-light text-dark",
+      "badge bg-dark"
+    ],
     stats: {},
     sources: [],
     logs: [],
@@ -14,7 +25,8 @@ new Vue({
     openedSource: null,
     searchFilter: null,
     selectedLog: null,
-    logInDetails: null,
+    selectedLogIndex: null,
+    detailSpans: true,
     debounce: null,
     toaster_context: {
       position: 'top-right',
@@ -27,8 +39,6 @@ new Vue({
       hideProgressBar: false,
       closeButton: 'button',
     },
-    ramChart: null,
-    queueChart: null,
   },
   mounted() {
     this.initializeCharts();
@@ -36,10 +46,6 @@ new Vue({
     // Fetch initial log data when the app is mounted
     this.fetchSources();
 
-    // Fetch data every 2 seconds
-    setInterval(() => {
-      this.fetchMetrics();
-    }, 2000); // 2000 milliseconds = 2 seconds
   },
   methods: {
     fetchSources() {
@@ -56,6 +62,7 @@ new Vue({
     },
     openLogsBySource(sourceId) {
       this.currentPage = 1;
+      this.selectedLogIndex = null;
       this.fetchLogsBySource(sourceId);
     },
     fetchLogsBySource(sourceId) {
@@ -69,6 +76,7 @@ new Vue({
           this.totalPages = data.total_pages;
           this.currentPage = data.current_page;
           this.totalCount = data.total_count;
+          this.selectedLogIndex = null;
         })
         .then(() => {
           this.$forceUpdate();
@@ -100,48 +108,27 @@ new Vue({
     },
     setCurrentPage(page) {
       this.currentPage = page;
+      this.selectedLogIndex = null;
       this.fetchLogsBySource(this.openedSource);
     },
-    toggleDetails(log) {
-      if (this.selectedLog === log) {
-        this.selectedLog = null;
-      } else {
-        this.selectedLog = log;
-      }
+    toggleDetails(index) {
+      this.selectedLogIndex = index;
+      this.selectedLog = this.logs[index];
+      const offcanvasElement = new bootstrap.Offcanvas(document.getElementById('offcanvasScrolling'));
+
+      // Toggle the Offcanvas
+      offcanvasElement.toggle();
     },
     truncateMessage(message) {
       const firstLine = message.split('\n')[0];
       return firstLine.length > 250 ? `${firstLine.slice(0, 250)}...` : firstLine;
-    },
-    isJSON(message) {
-      let copy = message;
-      try {
-        while (copy.indexOf(" ") != -1) {
-          let json = this.formatJSON(copy);
-          if (json) {
-            return json
-          }
-          // TODO: look with regex ?
-          copy = copy.substr(copy.indexOf(" ") + 1);
-        }
-        return null;
-      } catch (error) {
-        alert(error);
-        return null;
-      }
-    },
-    formatJSON(message) {
-      try{
-        return JSON.parse(message);
-      }catch(error) {
-        return false
-      }
     },
     debounceSearch(event) {
       clearTimeout(this.debounce)
       this.debounce = setTimeout(() => {
         this.searchFilter = event.target.value;
         this.currentPage = 1;
+        this.selectedLogIndex = null;
         this.fetchLogsBySource(this.openedSource);
       }, 600)
     },
@@ -163,66 +150,46 @@ new Vue({
         maintainAspectRatio: false,
         animation: false
       };
-
-      this.ramChart = new Chart(document.getElementById('ramChart').getContext('2d'), {
-        type: 'line',
-        data: {
-          labels: [],
-          datasets: [{
-            label: 'Ram Usage',
-            data: [],
-            backgroundColor: '#f87979',
-            lineTension: 0.2,
-            pointRadius: 0,
-          }]
-        },
-        options
-      });
-      this.queueChart = new Chart(document.getElementById('queueChart').getContext('2d'), {
-        type: 'line',
-        data: {
-          labels: [],
-          datasets: [{
-            label: 'Queue Count',
-            data: [],
-            backgroundColor: '#7AF5F9',
-            lineTension: 0.2,
-            pointRadius: 0,
-          }]
-        },
-        options
-      });
-    },
-    fetchMetrics() {
-      try {
-        fetch('/api/stat')
-          .then(response => response.json())
-          .then(data => {
-            const { ram_usage, queue_count } = data;
-    
-            this.updateChart(this.ramChart, ram_usage);
-            this.updateChart(this.queueChart, queue_count);
-          })
-      } catch (error) {
-        console.error('Error fetching metrics:', error);
-      }
-    },
-    updateChart(chart, value) {
-
-      const timestamp = Date.now();
-			if (chart.data.labels.length > 50) {
-				chart.data.datasets.forEach(function (dataset) { dataset.data.shift(); });
-				chart.data.labels.shift();
-			}
-
-      chart.data.datasets[0].data.push(value);
-			chart.data.labels.push(timestamp);
-      chart.update();
     },
     copyJsonValue(node) {
       let val = node.key + ': ' + node.content;
       navigator.clipboard.writeText(val);
       this.$toast.info("Copied to clipboard", {...this.toaster_context, timeout: 1800});
     },
+    handleArrowKeys(event) {
+      if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+        event.preventDefault(); // Prevent scrolling on arrow keys
+
+        // Logic to update selected log index based on arrow key pressed
+        if (event.key === 'ArrowUp' && this.selectedLogIndex > 0) {
+          this.selectedLogIndex--;
+        } else if (event.key === 'ArrowDown' && this.selectedLogIndex < this.logs.length - 1) {
+          this.selectedLogIndex++;
+        }
+        
+        // Perform any additional logic based on the selected log
+        this.toggleDetails(this.selectedLogIndex);
+      }
+    },
+    parseDetails(_json) {
+      let _index = 0;
+      let _len = this.badge_classes.length;
+      let result = [];
+
+      for (const [key, value] of Object.entries(_json)) {
+        if (value.length < 100 && !(["", "{}"].includes(value))){
+          result.push({
+            "class": this.badge_classes[_index % _len],
+            "value": `${key}: ${value}`
+          });
+          _index++;
+        }
+      }
+      
+      return result;
+    },
+    showDetailSpans() {
+      this.detailSpans = !this.detailSpans
+    }
   }
 });
